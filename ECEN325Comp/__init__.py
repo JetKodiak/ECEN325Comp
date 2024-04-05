@@ -221,11 +221,10 @@ class MOS:
 
 # --- --- ---
 
-#@title BJT Class
 VT=25E-3
 
 class BJT:
-  def __init__(self, NAME, TYPE,  I=None, O=None, MIN_VCE=0.2, b=100, VBE=0.7):
+  def __init__(self, NAME : str, TYPE : str,  I=None : float, O=None : float, MIN_VCE=0.2 : float, b=100 : float, VBE=0.7 : float):
     self._NAME = NAME
     self._TYPE = TYPE
     self._GOOD = False
