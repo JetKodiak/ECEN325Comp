@@ -1,13 +1,39 @@
-# @title Print w/ Units
-units = ["V", "A", 'Omega', "Ω", "F"]
-Prefix = ["E", "P", "T", "G", "M", "k", "h", "da", "-",
-          "d", "c", "m", "u", "n", "p", "f", "a"]
+# Debug Message
+def D(Message, Toggle=False):
+  if Toggle:
+    print(Message)
+
+# Unit Manipulation
+units = ["V", "A", 'Omega', "Ω", "F", '(A/V^2)']
+Prefix = ["E", "P", "T", "G", "M", "k", "h", "da", "",
+          "d", "c", "m", "u", "n", "p", "f", "a", 'SCI']
 PrefixValue = [1E18, 1E15, 1E12, 1E9, 1E6, 1E3, 1E2, 1E1, 1,
                 1E-1, 1E-2, 1E-3, 1E-6, 1E-9, 1E-12, 1E-15, 1E-18]
-def PrintUnits(v, v_unit, print_prefix=None, v_prefix=None, RoundingDigits=4):
+
+Standard_Prefixs = ["E", "P", "T", "G", "M", "k", "", "m", "u", "n", "p", "f", "a"]
+Standard_PrefixValue = [1E18, 1E15, 1E12, 1E9, 1E6, 1E3, 1, 0.001, 1E-6, 1E-9, 1E-12, 1E-15, 1E-18]
+
+def PrintUnits(v, v_unit, print_prefix=None, v_prefix=None, RoundingDigits=2,debug=False):
   # Major Errors:
   if v == None or v_unit == None:
-    return "[Not Defined]"
+    return "[Undefined]"
+  elif v > PrefixValue[0]:
+    return f"∞"
+  elif v == 0:
+    return f"0 {v_unit}"
+  # Auto-Find print-prefix if unknown
+  if print_prefix == 'SCI' and v_prefix == None:
+    D(f"v")
+    for i in range(len(Standard_Prefixs)):
+      D(f"v = {v}, i = {Standard_Prefixs[i]}, v > i\n   index = {i}", debug)
+      if abs(v) > Standard_PrefixValue[i]:
+        D(f"v = {v}, i = {Standard_PrefixValue[i]}, v > i", debug)
+        print_prefix = Standard_Prefixs[i]
+        break
+    if print_prefix == None or print_prefix == 'SCI':
+      raise Exception(f"Invalid Values:\n V = {v}\nv_unit={v_unit}\nPrintPrefix = {print_prefix}")
+  
+
   # Redefine the Units:
   if v_unit.lower() == "Omega".lower():
     unit = "Ω"
@@ -16,51 +42,91 @@ def PrintUnits(v, v_unit, print_prefix=None, v_prefix=None, RoundingDigits=4):
   # Print Units if no conversion
   if v_prefix == None and print_prefix == None:
     return f"{round(v, RoundingDigits)} {unit}"
+
+
   # --- --- ---
   # Find Basic Stuff
-
   if v_prefix == None:
-    v_prefix = "-"
+    v_prefix = ""
   if unit in units and v_prefix in Prefix and print_prefix in Prefix:
     v_index = Prefix.index(v_prefix)
     print_index = Prefix.index(print_prefix)
     vi = v * PrefixValue[v_index]
     vp = vi / PrefixValue[print_index]
+    D(f"PrefixValue[v_index] = {PrefixValue[v_index]} [-] vi = {vi}, vp = {vp}", debug)
     return f"{round(vp, RoundingDigits)} {print_prefix}{unit}"
+
+
   # --- --- ---
-  # ERror Detection
+  # Error Detection
   if not unit in units:
-    print("Invalid Unit")
+    raise Exception(f"Invalid Unit {unit}")
   elif not v_prefix in Prefix:
-    print(f"Invalid Value Prefix: {v_prefix}")
+    raise Exception(f"Invalid Value Prefix: {v_prefix}")
   elif not print_prefix in Prefix:
-    print("Invalid print prefix")
+    raise Exception(f"Invalid print prefix {print_prefix}")
 
-# --- --- ---
 
-# @title Operations
+# Operations:
 def parallel(ListOfValues):
   InverseSum = 0
   for i in ListOfValues:
     InverseSum += (i ** -1)
   return (InverseSum ** -1)
 
-'''
-The following function represents a voltage divider where the higher voltage 
-is attached to R1, and the lower voltage is attached to R2. V1 is the higher 
-voltage and R2 is the lower voltage
-'''
-
-# --- --- ---
-
-# @title MOS Class
+# MOSFET Simulator
 class MOS:
-  def __init__(self, NAME, TYPE, Width=None, Length=None, KPRIME = None, MOSBETA = None, Vtn = None):
-    # Define Fundamental Elements
+  """
+  This class is meant to simulate a MOSFET transister.
+
+  NAME(str): This is the name of the string and will appear be used when the
+              circuit attributes are printed
+  TYPE(str): This is the type of MOSFET transister. Must be either 'PMOS' or
+              'NMOS'
+  NHigh(str): This is the terminal with the highest voltage level. Necessary for
+              calculating Voltage Drop and Voltage at terminals.
+  IN(char): This is the input resistance for the MOSFET. Must be 's' (source),
+             'g' (gate), or 'd' (drain).
+  OUT(char): This is the output resistance for the MOSFET. Must be 's' (source),
+             'g' (gate), or 'd' (drain).
+  NOTE: EITHER MOSBETA or Width, Length, and KPRIME MUST be provided or
+              circuit analysis is impossible.
+  Width(float): This is the physical width of the MOSFET. Used in finding
+                  MOSBETA and the current when in a current mirror.
+  Length(float): This is the physical length of the MOSFET. Used in finding
+                  MOSBETA and the current when in a current mirror.
+  KPRIME(float): This is the Transconductance Parameter of the MOSFET. It
+                  varies based on the physical makeup and fabrication process
+                  of the MOSFET. Used for calculating MOSBETA.
+  MOSBETA(float): Value is determined by KPRIME * (Width / Length). Used for
+                  calculating MOSFET current.
+  Vt(float): The Threshold Voltage of a MOSFET. Used for determining the
+              region of the device.
+  MirrorBase(int): This value indicates whether the MOSFET is current mirrored.
+                    Possible States:
+                    0 (default). Not Current Mirrored.
+                    1. Current Mirrored. Current is dependant on the current 
+                    through the base MOSFET, and the voltage at the Gate
+                    terminal is the same as on the base MOSFET. 
+                    2. This MOSFET is a Mirror Base. The Drain and Gate
+                    teminals are connect and share the same voltage. VDG is set
+                    to 0. 
+  MirrorList([MOS]): Only used if MirrorBase == 2. This is a list of all the 
+                      MOSFETS that are updated whenever the voltage on the 
+                      Mirror Base is updated. 
+
+  """
+  def __init__(self, NAME, TYPE, IN=None, OUT=None, NHigh=None, Width=None, Length=None, KPRIME = None, MOSBETA = None, Vt = None, MirrorBase=0, MirrorList=None, debug=False):
+    # Define values that MUST be correct:
     self._NAME = NAME
-    self._TYPE = TYPE
+    self._DEBUG = debug
+    self._TYPE = TYPE if TYPE in ['PMOS', 'NMOS'] else print(f"MOS {self._NAME} Type is invalid. MUST BE (PMOS/NMOS). Please Update")
+    self.IN = IN if IN in ['s', 'g', 'd'] else print(f"MOS {self._NAME} Input Resistance is invalid. MUST BE (s/g/d). Please Update")
+    self.OUT = OUT if OUT in ['s', 'g', 'd'] else print(f"MOS {self._NAME} Output Resistance is invalid. MUST BE (s/g/d). Please Update")
+    # Define Fundamental Elements
+
     # Component Values:
-    self._Vtn = Vtn
+    self._Vt = Vt
     self._KPRIME = KPRIME
     self._W = Width
     self._L = Length
@@ -71,156 +137,646 @@ class MOS:
     self._CUTOFF = None
     # --- --- ---
     # Define Voltage At Nodes:
+    self._NHigh = NHigh
     self._VD = None
     self._VG = None
     self._VS = None
     # Define Voltage Differences:
     self._VDS = None
-    self._VGS = None
     self._VDG = None
+    self._VGS = None
     self._Vov = None
     # Define the current:
+    self._MIRRORBASE = MirrorBase
     self._ID = None
-  
+    # Define values for solving the quadratic to find VGS and ID:
+    self.VI_CALCTYPE = None
+    self._VGSp = None
+    self._VGSm = None
+    # --- --- ---
+    # Define AC Values:
+    # Define Small Signal Model Components
+    self._gm = None
+    self._ri = IN
+    self._ro = OUT
+
+    # Define External Resistances
+    self._ZS = None
+    self._ZG = None
+    self._ZD = None
+
+    # Define Various Input Resistances
+    self._Z_source = None
+    self._Z_gate = float('inf')
+    self._Z_drain = float('inf')
+
+
   # --- --- --- Print MOS Metrics --- --- ---
 
   def PrintAttributes(self):
-    a = '\t'
+    '''
+    This function prints all of the attributes of this MOSFET in a disorganized
+    list. Very Useful. 
+    '''
+    a = '   '
     print(f" --- --- --- \n"
           f"Metrics for MOS {self._NAME}\n"
-          f"{a}Type = {self._TYPE} [-] Vtn = {self._Vtn} [-] MOSβ = {self._MOSBETA}\n"
-          f"{a}VD = {self._VD} [-] VS = {self._VS} [-] VG = {self._VG}\n"
-          f"{a}VDS = {self._VDS} [-] VGS = {self._VGS} [-] VDG = {self._VDG}\n"
-          f"{a}Vov = {self._Vov} [-] ID = {self._ID}")
-  
+          f"{a}Highest Voltage Node = {self._NHigh}\n"
+          f"{a}Type = {self._TYPE} [-] Vtn = {PrintUnits(self._Vt, 'V', 'SCI')} [-] β = {PrintUnits(self._MOSBETA, '(A/V^2)', 'SCI', debug=False)}\n"
+          f"DC Solutions:\n"
+          f"{a}VD = {PrintUnits(self._VD, 'V', 'SCI')} [-] VS = {PrintUnits(self._VS, 'V', 'SCI')} [-] VG = {PrintUnits(self._VG, 'V', 'SCI')}\n"
+          f"{a}VDS = {PrintUnits(self._VDS, 'V', 'SCI')} [-] VGS = {PrintUnits(self._VGS, 'V', 'SCI')} [-] VDG = {PrintUnits(self._VDG, 'V', 'SCI')}\n"
+          f"{a}Vov = {PrintUnits(self._Vov, 'V', 'SCI')} [-] ID = {PrintUnits(self._ID, 'A', 'SCI')}"
+          f" --- --- --- \n"
+          f"AC Solutions:\n"
+          f"{a}ro = {PrintUnits(self.ro, 'Omega', 'SCI')} [-] ri = {PrintUnits(self.ri, 'Omega', 'SCI')}\n"
+          f"{a}gm = {PrintUnits(self._gm, 'Omega', 'SCI')}\n"
+          f"{a}ZS = {PrintUnits(self._ZS, 'Omega', 'SCI', debug=self._DEBUG)} [-] ZG = {PrintUnits(self._ZG, 'Omega', 'SCI', debug=self._DEBUG)} [-] ZD = {PrintUnits(self._ZD, 'Omega', 'SCI', debug=self._DEBUG)}\n"
+          f"{a}ZSource = {PrintUnits(self._Z_source, 'Omega', 'SCI', debug=self._DEBUG)} [-] ZGate = {PrintUnits(self._Z_gate, 'Omega', 'SCI', debug=self._DEBUG)} [-] ZDrain = {PrintUnits(self._Z_drain, 'Omega', 'SCI', debug=self._DEBUG)}")
+    if self.VI_CALCTYPE:
+      print(f"Parallel Voltage Method was used.\n"
+            f"{a}VGSp = {PrintUnits(self._VGSp, 'V', 'SCI')} [-] VGSm = {PrintUnits(self._VGSm, 'V', 'SCI')}\n"
+            f"{a}VGS = {PrintUnits(self._VGS, 'V', 'SCI')}")
+    self.Active()
+
   def Active(self):
-    self.CheckRegion()
-    if self._CUTOFF:
-      print(f"VGS = {self._VGS}, Vtn = {self._Vtn}\n"
-            f"VGS < Vtn\n"
-            f"MOS is in Cutoff Region.")
-    elif self._SAT:
-      print(f"VDS = {self._VDS}, Vov = {self._Vov}\n"
-            f"{self._VDS} > {self._Vov}\n"
-            f"MOS is in active region.")
-    elif not self._SAT:
-      print(f"VDS = {self._VDS}, Vov = {self._Vov}\n"
-            f"{self._VDS} < {self._Vov}\n"
-            f"MOS is in Triode Region.")
-    else: 
-      print(f"VDS = {self._VDS}, Vov = {self._Vov}\n"
+    D("'Active' Function Called.", self._DEBUG)
+    '''
+    This functions prints what active region the MOSFET is in with the current
+    values.
+    '''
+    a = '   '
+    if (self._SAT == None or self._CUTOFF == None):
+      self.CheckRegion()    
+    print(f"MOSFET {self._NAME} Region:")
+    if self._VGS != None and self._Vt != None and self._CUTOFF:
+      print(f"{a}VGS = {PrintUnits(self._VGS, 'V', 'SCI')}, Vtn = {PrintUnits(self._Vt, 'V', 'SCI')}\n"
+            f"{a}VGS < Vtn\n"
+            f"{a}MOS is in Cutoff Region.")
+    elif self._VDS != None and self._Vov != None and self._SAT:
+      print(f"{a}VDS = {PrintUnits(self._VDS, 'V', 'SCI')}, Vov = {PrintUnits(self._Vov, 'V', 'SCI')}\n"
+            f"{a}{PrintUnits(self._VDS, 'V', 'SCI')} > {PrintUnits(self._Vov, 'V', 'SCI')}\n"
+            f"{a}MOS is in active region.")
+    elif self._VDS != None and self._Vov != None and not self._SAT:
+      print(f"{a}VDS = {PrintUnits(self._VDS, 'V', 'SCI')}, Vov = {PrintUnits(self._Vov, 'V', 'SCI')}\n"
+            f"{a}{PrintUnits(self._VDS, 'V', 'SCI')} < {PrintUnits(self._Vov, 'V', 'SCI')}\n"
+            f"{a}MOS is in Triode Region.")
+    else:
+      print(f"VDS = {PrintUnits(self._VDS, 'V', 'SCI')}, Vov = {PrintUnits(self._Vov, 'V', 'SCI')}\n"
             f"MOS region is unknown.")
+    print("\n")
+
+
 
   # --- --- --- Check whether is Active region --- --- ---
 
   def CheckRegion(self):
-    if self._VSG < self._Vtn:
-      self._CUTOFF = True
-      self._SAT = False
-    elif self._VDS != None and self._Vov != None:
+    '''
+    This function checks whether the MOSFET is in the CUTOFF or SAT region. 
+    If VSG or Vt are undefined, then CUTOFF cannot be calculated. 
+    If VDS or Vov are undefined, then SATURATION cannot be calculated.
+    '''
+    D("CheckRegion Function Called", self._DEBUG)
+    if self._CUTOFF == None and self._VGS != None and self._Vt != None:
+      self._CUTOFF = self._VGS < self._Vt
+      D(f"[CheckRegion Function set variable self._CUTOFF = {self._CUTOFF}]", self._DEBUG)
+    if self._SAT == None and self._VDS != None and self._Vov != None:
       self._SAT = self._VDS > self._Vov
-      self._CUTOFF = False
-  
-  # --- --- --- Calculate Values --- --- ---
+      D(f"[CheckRegion Function set variable self._SAT = {self._SAT}]", self._DEBUG)
+
+
+  # --- --- --- Calculate Values Basic Values --- --- ---
 
   def CALC_MOSBETA(self):
+    D("CALC_MOSBETA Function Called", self._DEBUG)
+    '''
+    Calculates β of the MOSFET when k', W, and L are defined
+    within the class. 
+    
+    Will do nothing if β (_MOSBETA) is already defined, 
+    or if any of the necessary variables are undefined.
+    '''
     '_MOSBETA depends on L, W, and kprime'
     if self._MOSBETA == None and self._KPRIME != None and self._W != None and self._L != None:
       self._MOSBETA = self._KPRIME * (self._W / self._L)
+      D("CALC_MOSBETA set variable MOSBETA", self._DEBUG)
+
 
   def CALC_Vov(self):
-    'Vov depends on VGS and Vtp'
-    if self._Vov == None and self._VGS != None and self._Vtp != None:
-      self._Vov = abs(self._VGS) - abs(self._Vtn)
-    if self._Vov != None and self._ID != None and self._MOSBETA != None:
-      self._Vov = ((self._ID * 2)/(self._MOSBETA)) ** (1/2)
+    
+    '''
+    1. if VGS and Vt are known, then it calculates Vov (Overdrive Voltage).
+    2. If Vov or ID are known, then it calculates gm (transconductance)
+    3. If Vov is known, then it runs the function CheckRegion() which checks
+    what region the MOSFET is in.
+    '''
+    D("CALC_Vov Function Called", self._DEBUG)
+    # - - - - - 
+    if self._Vov == None and self._VGS != None and self._Vt != None:
+      self._Vov = abs(self._VGS) - abs(self._Vt)
+      D("CALC_Vov set variable Vov", self._DEBUG)
     if self._Vov != None:
       self.CheckRegion()
+    
 
   def CALC_VDS(self):
-    'VDS depends on VD and VS'
-    if self._VD != None and self._VS != None:
+    '''
+    Calculates VDS if VD and VS are known.
+    '''
+    D("CALC_VDS function called.", self._DEBUG)
+    if self._VD != None and self._VS != None and self._VDS == None:
+      D("CALC_VDS set variable VDS", self._DEBUG)
       self._VDS = abs(self._VD - self._VS)
       self.CheckRegion()
 
+
   def CALC_VGS(self):
-    'VGS depends on VG and VS'
-    if self._VG != None and self._VS != None:
+    '''
+    Calculates VGS if VG and VS are known.
+    '''
+    D("CALC_VGS function called.", self._DEBUG)
+    if self._VG != None and self._VS != None and self._VGS == None:
+      D("CALC_VGS set variable VGS", self._DEBUG)
       self._VGS = abs(self._VG - self._VS)
 
-  def CALC_VDG(self):
-    'VDG depends on VD and VG'
-    if self._VD != None and self._VG != None:
-      self._VDG = abs(self._VD - self._VG)
 
-  def CALC_ID(self):
-    'ID depends on MOSBETA and Vov'
-    if self._SAT == None:
-      print(f"Saturation is Unknown")
-    elif not self._SAT:
-      print(f"MOSFET is NOT active. ")
-    if self._Vov != None and self._MOSBETA != None and self._SAT:
+  def CALC_VDG(self):
+    '''
+    Calculates VDG if VD and VG are known.
+    '''
+    D("CALC_VDG function called.", self._DEBUG)
+    if self._VD != None and self._VG != None and self._VDG == None:
+      D("CALC_VDG set variable VDG", self._DEBUG)
+      self._VDG = abs(self._VD - self._VG)
+  
+
+  def CALC_GM(self):
+    '''
+    This function calculates gm (transconductance) if β (MOSBETA) is known and 
+    either Vov (overdrive voltage) or ID (current) are known
+    '''
+    D("CALC_GM function called.", self._DEBUG)
+    if self._Vov != None and self._MOSBETA != None:
+      self._gm = self._MOSBETA * self._Vov
+      D("CALC_GM set variable gm (1)", self._DEBUG)
+    elif self._ID != None and self._MOSBETA != None:
+      self._gm = (2 * self._MOSBETA * self._ID) ** (1/2)
+      D("CALC_GM set variable gm (2)", self._DEBUG)
+    if self._gm != None:
+      self._Z_source = 1 / self._gm
+  
+
+  def CALC_NHIGH(self):
+    '''
+    If NHigh isn't given in the class definition, this function attempts to 
+    find NHigh. The voltage at two terminals is required otherwise nothing will
+    happen.
+    '''
+    D("CALC_NHIGH function called.", self._DEBUG)
+    if self._NHigh != None:
+      D("NHigh variable is already known. Returning.", self._DEBUG)
+      return
+    # Comparison of VS and VG
+    if self._VS != None and self._VG != None:
+      if self._VG > self._VS:
+        # If the Gate is above the source, then the drain is above the source.
+        self._NHigh = 'd'
+        D(f"CALC_NHIGH set variable NHigh = {self._NHigh}.", self._DEBUG)
+        return
+      if self._VG < self._VS:
+        # If the Gate is below the source, then the drain is below the source
+        self._NHigh = 's'
+        D(f"CALC_NHIGH set variable NHigh = {self._NHigh}.", self._DEBUG)
+        return
+    
+
+    # Comparison of VS and VD
+    if self._VS != None and self._VD != None:
+      if self._VD > self._VS:
+        # If the Drain is above the source. 
+        self._NHigh = 'd'
+        D(f"CALC_NHIGH set variable NHigh = {self._NHigh}.", self._DEBUG)
+        return
+      if self._VD < self._VS:
+        # If the Source is above the drain. 
+        self._NHigh = 's'
+        D(f"CALC_NHIGH set variable NHigh = {self._NHigh}.", self._DEBUG)
+        return
+    
+    # Comparison of VD and VG
+    if self._VG != None and self._VD != None:
+      if self._VG > self._VD:
+        # If the Drain is below the gate, then the source is above the drain.
+        self._NHigh = 's'
+        D(f"CALC_NHIGH set variable NHigh = {self._NHigh}.", self._DEBUG)
+        return
+      if self._VG < self._VD:
+        # If the Drain is above the gate, then the source is below the Drain.
+        self._NHigh = 'd'
+        D(f"CALC_NHIGH set variable NHigh = {self._NHigh}.", self._DEBUG)
+        return
+
+  # --- --- --- Calculate Voltage Node Voltage From Voltage Difference --- --- ---
+
+  def CALC_VS_HIGH(self):
+    '''
+    Calculates various voltage relationships from known values. Only runs if
+    NHigh = 's' (Source).
+    '''
+    D("CALC_VS_HIGH function called.", self._DEBUG)
+    # Check for Change in VGS
+    D("CALC_VS_HIGH Checking for Change in VGS", self._DEBUG)
+    if self._VGS != None and self._VS != None and self._VG == None:
+      self._VG = self._VS - self._VGS
+    if self._VGS != None and self._VS == None and self._VG != None:
+      self._VS = self._VG + self._VGS
+    
+    # Check for Change in VDG
+    D("CALC_VS_HIGH Checking for Change in VDG", self._DEBUG)
+    if self._VDG != None and self._VG != None and self._VD == None:
+      self._VD = self._VG - self._VDG
+    if self._VDG != None and self._VG == None and self._VD != None:
+      self._VG = self._VD + self._VDG
+    
+    # Check for change in VDS
+    D("CALC_VS_HIGH Checking for Change in VDS", self._DEBUG)
+    if self._VDS != None and self._VS == None and self._VD != None:
+      self._VD = self._VS - self._VDS
+    if self._VDS != None and self._VS != None and self._VD == None:
+      self._VS = self._VD + self._VDS
+  # ---
+
+
+  def CALC_VD_HIGH(self):
+    '''
+    Calculates various voltage relationships from known values. Only runs if
+    NHigh = 'd' (Drain).
+    '''
+    D("CALC_VD_HIGH function called.", self._DEBUG)
+    # Check for Change in VGS
+    D("CALC_VD_HIGH Checking for Change in VGS", self._DEBUG)
+    if self._VGS != None and self._VS != None and self._VG == None:
+      self._VG = self._VS + self._VGS
+    if self._VGS != None and self._VS == None and self._VG != None:
+      self._VS = self._VG - self._VGS
+    
+    # Check for Change in VDG
+    D("CALC_VD_HIGH Checking for Change in VDG", self._DEBUG)
+    if self._VDG != None and self._VG != None and self._VD == None:
+      self._VD = self._VG + self._VDG
+    if self._VDG != None and self._VG == None and self._VD != None:
+      self._VG = self._VD - self._VDG
+    
+    # Check for change in VDS
+    D("CALC_VD_HIGH Checking for Change in VDS", self._DEBUG)
+    if self._VDS != None and self._VS == None and self._VD != None:
+      self._VD = self._VS + self._VDS
+    if self._VDS != None and self._VS != None and self._VD == None:
+      self._VS = self._VD - self._VDS
+  # ---
+
+
+  def CALC_VNODE(self):
+    '''
+    Calculates various voltage relationships from known values. Only runs if 
+    NHigh is known. 
+    '''
+    D("CALC_VNODE function called.", self._DEBUG)
+    if self._NHigh == None:
+      D("CALC_VNODE called CALC_NHIGH", self._DEBUG)
+      self.CALC_NHIGH()
+      if self._NHigh == None:
+        D("NHigh Still Unknown. Exiting self CALC_VNODE. ", self._DEBUG)
+        return
+    if self._NHigh == 's':
+      D("", self._DEBUG)
+      self.CALC_VS_HIGH()
+      self.CALC_VS_HIGH()
+    elif self._NHigh == 'd':
+      D("", self._DEBUG)
+      self.CALC_VD_HIGH()
+      self.CALC_VD_HIGH()
+    self.CALC_Vov()  
+
+
+
+  # --- --- --- Unique Parameter Calculation Methods --- --- ---
+  def ParallelVoltageMethod(self, VP, R, r=4, CCI=None):
+    '''
+    DO NOT USE WITHOUT UNDERSTANDING!!!
+    This function calculates the voltage VGS and current ID when given a
+    parallel voltage VP, and a resistance R. If the voltage going through the
+    resistor R is from more than one source, CCI is current from other sources
+    traveling through resistor R.
+    '''
+    D("", self._DEBUG)
+    # Check for CCI change
+    if CCI != None:
+      VP = VP - R * CCI
+      # print(R6.V - (R4.Z * M1._ID))
+    # First, we check whether Vov is known. Must know VGS and Vt
+    if self._ID == None and self._Vov != None and self._MOSBETA != None:
+      D("", self._DEBUG)
+      self.VI_CALCTYPE = False
       self._ID = (self._MOSBETA * (self._Vov ** 2))/(2)
+      self.CALC_GM()
+
+
+    # Now check
+    elif self._ID == None and self._VGS == None and self._Vt != None:
+      self.VI_CALCTYPE = True
+      D("", self._DEBUG)
+
+
+      # Find the parts of the equation
+      A = self._MOSBETA / 2
+      B = ((1/R) - (self._MOSBETA * abs(self._Vt)))
+      C = (self._MOSBETA / 2) * (abs(self._Vt) ** 2) - (abs(VP) /R)
+      if self._DEBUG:
+        print(f"A = {A}, B = {B}, C = {C}")
+
+
+      # Now use the Quadratic Formula
+      self._VGSp = round( ( (-1 * B) + (np.sqrt((B**2) - 4*A*C)) ) / (2 * A), r)
+      self._VGSm = round( ( (-1 * B) - (np.sqrt((B**2) - 4*A*C)) ) / (2 * A), r)
+
+
+      # Now to determine which value to use.
+      if self._VGSp < abs(self._Vt) and self._VGSm >= self._Vt:
+        self._VGS = self._VGSm
+      elif self._VGSp >= abs(self._Vt) and self._VGSm < abs(self._Vt):
+        self._VGS = self._VGSp
+      elif self._VGSp < abs(self._Vt) and self._VGSm < abs(self._Vt):
+        raise Exception(f"VGSp = {self._VGSp} [-] VGSn = {self._VGSm}\nINVALID {self._NAME}.VGS value. CODE: 1")
+      else:
+        raise Exception(f"VGSp = {self._VGSp} [-] VGSn = {self._VGSm}\nINVALID {self._NAME}.VGS value. CODE: 2")
+      
+
+      # Now reverse calculate the current ID:
+      if CCI == None:
+        _CCI = 0
+      else:
+        _CCI = CCI
+      IR1 = (VP - self._VGS) / R
+      IR1T = KTRUNC(IR1, 2)
+      IR2 = (self._MOSBETA / 2) * (self._VGS - abs(self._Vt)) ** 2
+      IR2T = KTRUNC(IR2, 2)
+      if IR1T != IR2T:
+        raise Exception(f"ID1 = {IR1}, ID1T = {IR1T}, ID2 = {IR2} ID2T = {IR2T}\nCurrent Values are incorrect.")
+      elif CCI != None:
+        self._ID = IR1
+        self.CALC_GM()
+      elif CCI == None:
+        self._ID = IR1
+        self.CALC_GM()
+      
+      
+      # Finally, call VNODE to update VG or VS as necessary.
+      self.CALC_VNODE()
+      self.CALC_Vov()
+      
 
   # --- --- --- Define all the properties and setters --- --- ---
-  # --- Define Voltage Functions --- 
-  
+  # --- Define DC Voltage Functions ---
+
   @property
   def VD(self):
+    '''
+    This function retrieves the value of the voltage at the Drain terminal of 
+    the MOSFET. 
+    '''
+    D("", self._DEBUG)
     return self._VD
 
   @VD.setter
   def VD(self, v):
+    '''
+    This function sets the value of the voltage at the Drain terminal of the
+    MOSFET. 
+    
+    '''
+    D("", self._DEBUG)
     self._VD = v
     # Define Related Values
     self.CALC_VDS()
     self.CALC_VDG()
-  
+    self.CALC_VNODE()
   @property
   def VG(self):
+    '''
+    Returns the voltage at the Gate terminal of the MOSFET
+    '''
+    D("", self._DEBUG)
     return self._VG
   @VD.setter
   def VG(self, v):
+    '''
+    Sets the voltage on the Gate terminal of the MOSFET. 
+    Also calculates related values.
+    '''
+    D("", self._DEBUG)
     self._VG = v
     # Calculate any related values
     self.CALC_VGS()
     self.CALC_VDG()
-  
+    self.CALC_VNODE()
+
   @property
   def VS(self):
+    '''
+    Returns the voltage at the Source terminal of the MOSFET
+    '''
+    D("", self._DEBUG)
     return self._VS
   @VS.setter
   def VS(self, v):
+    '''
+    Sets the voltage on eht Source Terminal. Also calculates related values.
+    '''
+    D("", self._DEBUG)
     self._VS = v
     self.CALC_VDS()
     self.CALC_VGS()
-  
+    self.CALC_VNODE()
+
   # --- Define Voltage Difference Functions ---
 
   @property
   def VDS(self):
+    '''
+    Returns the voltage difference between the Drain and Source nodes. 
+    '''
+    D("", self._DEBUG)
     return self._VDS
-  
+
   @property
   def VGS(self):
+    '''
+    Returns the voltage difference between the Gate and Source nodes.
+    '''
+    D("", self._DEBUG)
     return self._VGS
 
   @property
   def VDG(self):
+    '''
+    Returns the voltage difference between the Gate and Drain nodes.
+    '''
+    D("", self._DEBUG)
     return self._VDG
-  
+
   # --- Define Current Functions ---
 
   @property
   def ID(self):
+    '''
+    Returns the current through the MOSFET. 
+    '''
+    D("", self._DEBUG)
     return self._ID
   @ID.setter
   def ID(self, v):
+    '''
+    Sets the current through the MOSFET. 
+    Calculates Vov (Overdrive Voltage) when β is known. 
+    Calculates gm (Tranconductance). 
+    '''
+    D("", self._DEBUG)
     self._ID = v
     self.CALC_Vov()
+    self.CALC_GM()
 
-# --- --- ---
 
+  # --- --- --- Define all the AC Values --- --- ---
+  # Define Interal AC Resistances:
+  @property
+  def ZSource(self):
+    '''
+    Returns the input resistance through the source terminal.
+    '''
+    D("Property ZSource called.", self._DEBUG)
+    return self._Z_source
+  @property
+  def ZGate(self):
+    '''
+    Returns the input resistance through the gate terminal.
+    '''
+    D("Property ZGate called.", self._DEBUG)
+    return self._Z_gate
+  @property
+  def ZDrain(self):
+    '''
+    Returns the input resistance through the drain terminal.
+    '''
+    D("Property ZDrain called.", self._DEBUG)
+    return self._Z_drain
+    
+  # Define External AC Resistances
+  @property
+  def Z(self):
+    '''
+
+    '''
+    D("", self._DEBUG)
+    return self._Z
+    
+  @Z.setter
+  def ZS(self, v):
+    '''
+
+    '''
+    D("", self._DEBUG)
+    self._Z = v
+  
+
+  @property
+  def ZS(self):
+
+    D("", self._DEBUG)
+    return self._ZS
+  @ZS.setter
+  def ZS(self, v):
+
+    D("", self._DEBUG)
+    self._ZS = v
+  
+
+  @property
+  def ZG(self):
+
+    D("", self._DEBUG)
+    return self._ZG
+  @Z.setter
+  def ZG(self, v):
+
+    D("", self._DEBUG)
+    self._ZG = v
+  
+
+  @property
+  def ZD(self):
+
+    D("", self._DEBUG)
+    return self._ZD
+  @Z.setter
+  def ZD(self, v):
+
+    D("", self._DEBUG)
+    self._ZD = v
+
+  # Properties of "ro" Input resistance
+  @property
+  def ri(self):
+    '''
+    Returns the input resistance along the defined path. 
+    '''
+    D("", self._DEBUG)
+    if self._ri == 'd':
+      return self._Z_drain
+    elif self._ri == 'g':
+      return self._Z_gate
+    elif self._ri == 's':
+      return self._Z_source
+    else:
+      raise Exception(f"Invalid Input Resistance for MOSFET {self._NAME}")
+  @ri.setter
+  def ri(self,v):
+    '''
+    Must be 'd', 's', or'g'. 
+    Defines what node has the input resistance. 
+    '''
+    D("", self._DEBUG)
+    self._ri = v
+    if self._ri != 'd' or self._ri != 's' or self._ri != 'g':
+      raise Exception(f"Invalid Input Resistance for MOSFET {self._NAME}")
+
+  @property
+  def ro(self):
+    '''
+    Returns the output resistance along the defined path. 
+    '''
+    D("", self._DEBUG)
+    if self._ro == 'd':
+      return self._ZD
+    elif self._ro == 'g':
+      return self._ZG
+    elif self._ro == 's':
+      return self._ZS
+    else:
+      raise Exception(f"Invalid Output Resistance for MOSFET {self._NAME}") 
+  @ro.setter
+  def ro(self, v):
+    '''
+    Must be 'd', 's', or'g'. 
+    Defines what value is the output resistance. 
+    '''
+    D("", self._DEBUG)
+    self._ro = v
+    if self._ro != 'd' and self._ri != 's' and self._ri != 'g':
+      raise Exception(f"Invalid Output Resistance for MOSFET {self._NAME}")
+
+
+# BJT Function
 VT=25E-3
 
 class BJT:
@@ -380,7 +936,7 @@ class BJT:
         self._VE = self._VB + self._VBE
 
   # --- --- ---
-  
+
   @property
   def VE(self):
     return self._VE
@@ -618,8 +1174,8 @@ class BJT:
   def _α(self):
     return self._a
 
-# --- --- ---
 
+# Resistor Class:
 #@title Resistor Class
 # ----- ----- -----
 class R:
@@ -633,15 +1189,15 @@ class R:
     self._V = V
     self._ERROR = None
     self.OhmsLaw()
-  
+
   # --- --- --- Check Resistor Information --- --- ---
 
   def PrintAttributes(self):
     print(f"Values of Resistor {self._NAME}:"
-          f"   R = {PrintUnits(self._Z, 'Omega')}"
-          f" [-] I = {PrintUnits(self._I, 'A', 'm')}"
-          f" [-] VR = {PrintUnits(self._V, 'V')}")
-  
+          f"   R = {PrintUnits(self._Z, 'Omega', 'SCI')}"
+          f" [-] I = {PrintUnits(self._I, 'A', 'SCI')}"
+          f" [-] VR = {PrintUnits(self._V, 'V', 'SCI')}")
+
   # --- --- --- Calculate Values --- --- ---
   def OhmsLaw(self):
     if self._Z != None and self._Z != 0 and self._I != None and self._I != 0:
@@ -650,17 +1206,17 @@ class R:
       self._ = self._V / self._I
     elif self._V != None and self._V != 0 and self._Z != None and self._Z != 0:
       self._I = self._V / self._Z
-  
-  # --- --- --- Define Value Functions --- --- --- 
+
+  # --- --- --- Define Value Functions --- --- ---
 
   @property
   def TYPE(self):
     return self._TYPE
 
+
   @property
   def Z(self):
     return self._Z
-
   @Z.setter
   def Z(self, v):
     if v > 0:
@@ -668,6 +1224,18 @@ class R:
       self.OhmsLaw()
     else:
       self._ERROR = True
+  
+  @property
+  def R(self):
+    return self._Z
+  @R.setter
+  def R(self, v):
+    if v > 0:
+      self._Z = v
+      self.OhmsLaw()
+    else:
+      self._ERROR = True
+  
 
   @property
   def I(self):
@@ -678,6 +1246,7 @@ class R:
     self._I = v
     self.OhmsLaw()
 
+
   @property
   def V(self):
     return self._V
@@ -687,8 +1256,8 @@ class R:
     self._V = abs(v)
     self.OhmsLaw()
 
-# --- --- ---
 
+# Capacitor Class:
 #@title Capitor Class
 # ----- ----- -----
 class C:
@@ -699,15 +1268,15 @@ class C:
     # Basic Values
     self._Z = R
     self._V = V
-  
+
   # --- --- --- Check Resistor Information --- --- ---
 
   def PrintAttributes(self, FaradMultiple):
     print(f"Values of Resistor {self._NAME}:"
           f"   C = {PrintUnits(self._Z, 'F',FaradMultiple)}"
           f" [-] VR = {PrintUnits(self._V, 'V')}")
-  
-  # --- --- --- Define Value Functions --- --- --- 
+
+  # --- --- --- Define Value Functions --- --- ---
 
   @property
   def TYPE(self):
@@ -730,8 +1299,9 @@ class C:
   def V(self, v):
     self._V = abs(v)
 
-# --- --- ---
 
+
+# Voltage Divider Function:
 # @title Voltage Divider
 
 class VD:
@@ -750,7 +1320,7 @@ class VD:
 
     # Calculations:
     self.DividerType()
-    
+
   # --- --- --- Print Divider Attributes --- --- ---
 
   def PrintAttributes(self):
@@ -768,7 +1338,7 @@ class VD:
     elif self._ZH.TYPE == 'C' and self._ZL.TYPE == 'R':
       self._TYPE = 'CR'
       self.CALC_CR()
-  
+
   # --- --- --- Calculate DC Divided Voltage --- --- ---
 
   def CALC_DC(self):
@@ -778,17 +1348,18 @@ class VD:
     self._GAIN = (self._ZH.Z)/(self._ZH.Z + self._ZL.Z)
     self._FREQUENCY = 0
     self._PASSTYPE = 0
-  
+
   # --- --- ---
 
   def CALC_RC(self):
     self._GAIN = 1
     self._FREQUENCY = (self._ZH.Z * self._ZL.Z) ** -1
     self._PASSTYPE = -1
-  
+
   def CALC_CR(self):
     self._GAIN = 1
     self._FREQUENCY = (self._ZH.Z * self._ZL.Z) ** -1
     self._PASSTYPE = 1
 
-# --- --- --
+
+
