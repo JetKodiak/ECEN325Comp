@@ -1452,6 +1452,7 @@ class C:
 # Voltage Divider Function:
 # @title Voltage Divider
 
+
 class VD:
   def __init__(self, VH=None, VL=None, ZH=None, ZL=None):
     # Define Divider Values
@@ -1492,7 +1493,7 @@ class VD:
   def CALC_DC(self):
     self._ZH.V = ((self._ZH.Z)/(self._ZH.Z + self._ZL.Z)) * abs(self._VH - self._VL)
     self._ZL.V = ((self._ZL.Z)/(self._ZH.Z + self._ZL.Z)) * abs(self._VH - self._VL)
-    self._NV = self._VL + self._ZH.V
+    self._NV = self._VH - self._ZH.V
     self._GAIN = (self._ZH.Z)/(self._ZH.Z + self._ZL.Z)
     self._FREQUENCY = 0
     self._PASSTYPE = 0
@@ -1508,6 +1509,3 @@ class VD:
     self._GAIN = 1
     self._FREQUENCY = (self._ZH.Z * self._ZL.Z) ** -1
     self._PASSTYPE = 1
-
-
-
