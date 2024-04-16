@@ -77,6 +77,7 @@ def parallel(ListOfValues):
 
 # MOSFET Simulator
 # @title MOS Class
+# @title MOS Class
 class MOS:
   """
   This class is meant to simulate a MOSFET transister.
@@ -532,8 +533,8 @@ class MOS:
       B1 = (-1 * Resistance * M1._MOSBETA * abs(M1._Vt)) + (Y1 + 1)
       C1 = (M1._Vt ** 2) * (M1._MOSBETA) * (Resistance) * (1/2) - ΔV + Z1
       D(f"A1 = {A1}, B1 = {B1}, C1 = {C1}", self._DEBUG)
-      self._VGSp = ( (-1 * B1) + (np.sqrt((B1**2) - 4*A1*C1)) ) / (2 * A1)
-      self._VGSm = ( (-1 * B1) - (np.sqrt((B1**2) - 4*A1*C1)) ) / (2 * A1)
+      self._VGSp = ( (-1 * B1) + (((B1**2) - 4*A1*C1) ** (1/2)) ) / (2 * A1)
+      self._VGSm = ( (-1 * B1) - (((B1**2) - 4*A1*C1)  ** (1/2)) ) / (2 * A1)
       D(f"{M1._NAME}.VGSp = {M1._VGSp} [-] {M1._NAME}.VGSm = {M1._VGSm}", M1._DEBUG)
 
       # Setup and solve quadratic for M2
@@ -541,8 +542,8 @@ class MOS:
       B2 = (-1 * Resistance * M2._MOSBETA * abs(M2._Vt)) + (Y2 + 1)
       C2 = (M2._Vt ** 2) * (M2._MOSBETA) * (Resistance) * (1/2) - ΔV + Z2
       D(f"A2 = {A2}, B2 = {B2}, C2 = {C2}", M2._DEBUG)
-      M2._VGSp = ( (-1 * B2) + (np.sqrt((B2**2) - 4*A2*C2)) ) / (2 * A2)
-      M2._VGSm = ( (-1 * B2) - (np.sqrt((B2**2) - 4*A2*C2)) ) / (2 * A2)
+      M2._VGSp = ( (-1 * B2) + (((B2**2) - 4*A2*C2) ** (1/2)) ) / (2 * A2)
+      M2._VGSm = ( (-1 * B2) - (((B2**2) - 4*A2*C2) ** (1/2)) ) / (2 * A2)
       D(f"{M2._NAME}.VGSp = {M2._VGSp} [-] {M2._NAME}.VGSm = {M2._VGSm}", M2._DEBUG)
 
       # Check for which value of VGS is value for M1 == self:
@@ -618,8 +619,8 @@ class MOS:
 
 
       # Now use the Quadratic Formula
-      self._VGSp = round( ( (-1 * B) + (np.sqrt((B**2) - 4*A*C)) ) / (2 * A), r)
-      self._VGSm = round( ( (-1 * B) - (np.sqrt((B**2) - 4*A*C)) ) / (2 * A), r)
+      self._VGSp = round( ( (-1 * B) + (((B**2) - 4*A*C)) ** (1/2)) / (2 * A), r)
+      self._VGSm = round( ( (-1 * B) - (((B**2) - 4*A*C)) ** (1/2)) / (2 * A), r)
 
 
       # Now to determine which value to use.
@@ -919,6 +920,7 @@ class MOS:
     self._ro = v
     if self._ro != 'd' and self._ri != 's' and self._ri != 'g':
       raise Exception(f"Invalid Output Resistance for MOSFET {self._NAME}")
+
 
 
 
