@@ -75,6 +75,7 @@ def parallel(ListOfValues):
   return (InverseSum ** -1)
 
 # MOSFET Simulator
+# @title MOS Class
 class MOS:
   """
   This class is meant to simulate a MOSFET transister.
@@ -104,25 +105,38 @@ class MOS:
               region of the device.
   MirrorBase(int): This value indicates whether the MOSFET is current mirrored.
                     Possible States:
-                    0 (default). Not Current Mirrored.
-                    1. Current Mirrored. Current is dependant on the current 
-                    through the base MOSFET, and the voltage at the Gate
-                    terminal is the same as on the base MOSFET. 
-                    2. This MOSFET is a Mirror Base. The Drain and Gate
+                    0 (default). Current is completely independant. 
+                    1. Current Dependant. Current is dependant on the current 
+                    through the base MOSFET. This MOSFET is in series with 
+                    either a Current Mirror or Current Mirror Base. 
+                    2. Current Mirror: The current through this MOSFET is the
+                    same as through the Mirror Base, and it shares a node with 
+                    the node VG. 
+                    3. This MOSFET is a Mirror Base. The Drain and Gate
                     teminals are connect and share the same voltage. VDG is set
                     to 0. 
-  MirrorList([MOS]): Only used if MirrorBase == 2. This is a list of all the 
+  MirrorList([MOS]): Only used if MirrorBase == 3. This is a list of all the 
                       MOSFETS that are updated whenever the voltage on the 
                       Mirror Base is updated. 
 
   """
-  def __init__(self, NAME, TYPE, IN=None, OUT=None, NHigh=None, Width=None, Length=None, KPRIME = None, MOSBETA = None, Vt = None, MirrorBase=0, MirrorList=None, debug=False):
+  def __init__(self, NAME, TYPE, NHigh=None, IN=None, OUT=None, 
+               VS=None, VG=None, VD=None,
+               Vt = None, 
+               Width=1, Length=1, 
+               KPRIME = None, MOSBETA = None, 
+               MirrorBase=0, dependant_list=None, mirror_list=None, 
+               debug=False):
     # Define values that MUST be correct:
     self._NAME = NAME
     self._DEBUG = debug
     self._TYPE = TYPE if TYPE in ['PMOS', 'NMOS'] else print(f"MOS {self._NAME} Type is invalid. MUST BE (PMOS/NMOS). Please Update")
-    self.IN = IN if IN in ['s', 'g', 'd'] else print(f"MOS {self._NAME} Input Resistance is invalid. MUST BE (s/g/d). Please Update")
-    self.OUT = OUT if OUT in ['s', 'g', 'd'] else print(f"MOS {self._NAME} Output Resistance is invalid. MUST BE (s/g/d). Please Update")
+    if IN != None and OUT != None:
+      self._ri = IN if IN in ['s', 'g', 'd'] else print(f"MOS {self._NAME} Input Resistance is invalid. MUST BE (s/g/d). Please Update")
+      self._ro = OUT if OUT in ['s', 'g', 'd'] else print(f"MOS {self._NAME} Output Resistance is invalid. MUST BE (s/g/d). Please Update")
+    else:
+      self._ri = IN
+      self._ro = OUT
     # Define Fundamental Elements
 
     # Component Values:
@@ -138,9 +152,13 @@ class MOS:
     # --- --- ---
     # Define Voltage At Nodes:
     self._NHigh = NHigh
-    self._VD = None
-    self._VG = None
-    self._VS = None
+    self._VD = VD
+    self._VG = VG
+    self._VS = VS
+    if MirrorBase == 3:
+      self._VLIST = [self._VD, self._VG]
+      self._VG = self._VLIST[0]
+      self._VD = self._VLIST[0]
     # Define Voltage Differences:
     self._VDS = None
     self._VDG = None
@@ -148,6 +166,8 @@ class MOS:
     self._Vov = None
     # Define the current:
     self._MIRRORBASE = MirrorBase
+    self._CURRENT_DEPENDANTS = dependant_list
+    self._CURRENT_MIRRORS = mirror_list
     self._ID = None
     # Define values for solving the quadratic to find VGS and ID:
     self.VI_CALCTYPE = None
@@ -157,8 +177,6 @@ class MOS:
     # Define AC Values:
     # Define Small Signal Model Components
     self._gm = None
-    self._ri = IN
-    self._ro = OUT
 
     # Define External Resistances
     self._ZS = None
@@ -169,8 +187,15 @@ class MOS:
     self._Z_source = None
     self._Z_gate = float('inf')
     self._Z_drain = float('inf')
+  
 
-
+  def NODESET(self, VD=None, VG=None, VS=None):
+    if VD != None:
+      self._VD = VD
+    if VG != None:
+      self._VG = VG
+    if self._VS != None:
+      self._VS = VS
   # --- --- --- Print MOS Metrics --- --- ---
 
   def PrintAttributes(self):
@@ -184,7 +209,7 @@ class MOS:
           f"{a}Highest Voltage Node = {self._NHigh}\n"
           f"{a}Type = {self._TYPE} [-] Vtn = {PrintUnits(self._Vt, 'V', 'SCI')} [-] β = {PrintUnits(self._MOSBETA, '(A/V^2)', 'SCI', debug=False)}\n"
           f"DC Solutions:\n"
-          f"{a}VD = {PrintUnits(self._VD, 'V', 'SCI')} [-] VS = {PrintUnits(self._VS, 'V', 'SCI')} [-] VG = {PrintUnits(self._VG, 'V', 'SCI')}\n"
+          f"{a}VD = {PrintUnits(self.VD, 'V', 'SCI')} [-] VS = {PrintUnits(self.VS, 'V', 'SCI')} [-] VG = {PrintUnits(self.VG, 'V', 'SCI')}\n"
           f"{a}VDS = {PrintUnits(self._VDS, 'V', 'SCI')} [-] VGS = {PrintUnits(self._VGS, 'V', 'SCI')} [-] VDG = {PrintUnits(self._VDG, 'V', 'SCI')}\n"
           f"{a}Vov = {PrintUnits(self._Vov, 'V', 'SCI')} [-] ID = {PrintUnits(self._ID, 'A', 'SCI')}"
           f" --- --- --- \n"
@@ -247,6 +272,25 @@ class MOS:
 
   # --- --- --- Calculate Values Basic Values --- --- ---
 
+  def CALC_CURRENTMIRROR(self):
+    '''
+    This function changes the values of all MOSFETS in the _CURRENT_MIRROR and 
+    _CURRENT_DEPENDANT lists.
+    '''
+    if self._MIRRORBASE == 3:
+      for MOS in self._CURRENT_MIRRORS:
+        if self._ID != None:
+          MOS.ID = self._ID
+        if self._VG != None:
+          MOS.VG = self._VG
+      
+      for MOS in self._CURRENT_DEPENDANTS:
+        if self._ID != None:
+          MOS.ID = self._ID
+
+
+  # --- --- --- Calculate Changed Values for MOSBETA --- --- ---
+
   def CALC_MOSBETA(self):
     D("CALC_MOSBETA Function Called", self._DEBUG)
     '''
@@ -260,6 +304,8 @@ class MOS:
     if self._MOSBETA == None and self._KPRIME != None and self._W != None and self._L != None:
       self._MOSBETA = self._KPRIME * (self._W / self._L)
       D("CALC_MOSBETA set variable MOSBETA", self._DEBUG)
+    if self._KPRIME == None and self._MOSBETA != None and self._W != None and self._L != None:
+      self._KPRIME = self._MOSBETA * (self._L / self._W)
 
 
   def CALC_Vov(self):
@@ -298,6 +344,7 @@ class MOS:
     if self._VG != None and self._VS != None and self._VGS == None:
       D("CALC_VGS set variable VGS", self._DEBUG)
       self._VGS = abs(self._VG - self._VS)
+      self.CALC_CURRENTMIRROR()
 
 
   def CALC_VDG(self):
@@ -308,6 +355,7 @@ class MOS:
     if self._VD != None and self._VG != None and self._VDG == None:
       D("CALC_VDG set variable VDG", self._DEBUG)
       self._VDG = abs(self._VD - self._VG)
+      self.CALC_CURRENTMIRROR()
   
 
   def CALC_GM(self):
@@ -457,10 +505,82 @@ class MOS:
       self.CALC_VD_HIGH()
       self.CALC_VD_HIGH()
     self.CALC_Vov()  
-
+    self.CALC_CURRENTMIRROR()
 
 
   # --- --- --- Unique Parameter Calculation Methods --- --- ---
+
+  def SeriesMirror(self, M, VH=5, VL=0, Resistance=0, r=2):
+    '''
+    DO NOT USE WITHOUT UNDERSTANDING!!!
+    This function calculates the VSG across two seperate Current Mirror Bases.
+    '''
+    D(f"Series Mirror Function Called: ")
+    ΔV = abs(VH - VL)
+    D(f"Resistace = {Resistance}", self._DEBUG or M._DEBUG)
+    M1 = self
+    M2 = M
+    if self.VS > M.VS:
+      Y1 = (M1._MOSBETA / M2._MOSBETA) ** (1/2)
+      Z1 = Y1 * abs(M1._Vt) - abs(M2._Vt)
+      Y2 = 1 / Y1
+      Z2 = Z1 / Y1
+      # --- --- ---
+      # Setup and solve quadratic for M1 == self
+      A1 = M1._MOSBETA * Resistance * (1/2)
+      B1 = (-1 * Resistance * M1._MOSBETA * abs(M1._Vt)) + (Y1 + 1)
+      C1 = (M1._Vt ** 2) * (M1._MOSBETA) * (Resistance) * (1/2) - ΔV + Z1
+      D(f"A1 = {A1}, B1 = {B1}, C1 = {C1}", self._DEBUG)
+      self._VGSp = ( (-1 * B1) + (np.sqrt((B1**2) - 4*A1*C1)) ) / (2 * A1)
+      self._VGSm = ( (-1 * B1) - (np.sqrt((B1**2) - 4*A1*C1)) ) / (2 * A1)
+      D(f"{M1._NAME}.VGSp = {M1._VGSp} [-] {M1._NAME}.VGSm = {M1._VGSm}", M1._DEBUG)
+
+      # Setup and solve quadratic for M2
+      A2 = M2._MOSBETA * Resistance * (1/2)
+      B2 = (-1 * Resistance * M2._MOSBETA * abs(M2._Vt)) + (Y2 + 1)
+      C2 = (M2._Vt ** 2) * (M2._MOSBETA) * (Resistance) * (1/2) - ΔV + Z2
+      D(f"A2 = {A2}, B2 = {B2}, C2 = {C2}", M2._DEBUG)
+      M2._VGSp = ( (-1 * B2) + (np.sqrt((B2**2) - 4*A2*C2)) ) / (2 * A2)
+      M2._VGSm = ( (-1 * B2) - (np.sqrt((B2**2) - 4*A2*C2)) ) / (2 * A2)
+      D(f"{M2._NAME}.VGSp = {M2._VGSp} [-] {M2._NAME}.VGSm = {M2._VGSm}", M2._DEBUG)
+
+      # Check for which value of VGS is value for M1 == self:
+      if self._VGSp < abs(self._Vt) and self._VGSm >= self._Vt:
+        self._VGS = self._VGSm
+      elif self._VGSp >= abs(self._Vt) and self._VGSm < abs(self._Vt):
+        self._VGS = self._VGSp
+      elif self._VGSp < abs(self._Vt) and self._VGSm < abs(self._Vt):
+        raise Exception(f"VGSp = {self._VGSp} [-] VGSn = {self._VGSm}\nINVALID {self._NAME}.VGS value. CODE: 1")
+      else:
+        raise Exception(f"VGSp = {self._VGSp} [-] VGSn = {self._VGSm}\nINVALID {self._NAME}.VGS value. CODE: 2")
+      
+      
+      # Check Value for M2:
+      if M2._VGSp < abs(M2._Vt) and M2._VGSm >= M2._Vt:
+        M2._VGS = M2._VGSm
+      elif M2._VGSp >= abs(M2._Vt) and M2._VGSm < abs(M2._Vt):
+        M2._VGS = M2._VGSp
+      elif M2._VGSp < abs(M2._Vt) and M2._VGSm < abs(M2._Vt):
+        raise Exception(f"VGSp = {M2._VGSp} [-] VGSn = {M2._VGSm}\nINVALID {M2._NAME}.VGS value. CODE: 1")
+      else:
+        raise Exception(f"VGSp = {M2._VGSp} [-] VGSn = {M2._VGSm}\nINVALID {M2._NAME}.VGS value. CODE: 2")
+
+      
+      # Calculate ID for both. 
+      M1.ID = M2.ID = (ΔV - M1.VGS - M2.VGS) * (1 / Resistance)
+      self.CALC_GM()
+      self.CALC_VNODE()
+      self.CALC_Vov()
+      M2.CALC_GM()
+      M2.CALC_VNODE()
+      M2.CALC_Vov()
+
+
+
+      
+
+
+
   def ParallelVoltageMethod(self, VP, R, r=4, CCI=None):
     '''
     DO NOT USE WITHOUT UNDERSTANDING!!!
@@ -518,17 +638,8 @@ class MOS:
       else:
         _CCI = CCI
       IR1 = (VP - self._VGS) / R
-      IR1T = KTRUNC(IR1, 2)
-      IR2 = (self._MOSBETA / 2) * (self._VGS - abs(self._Vt)) ** 2
-      IR2T = KTRUNC(IR2, 2)
-      if IR1T != IR2T:
-        raise Exception(f"ID1 = {IR1}, ID1T = {IR1T}, ID2 = {IR2} ID2T = {IR2T}\nCurrent Values are incorrect.")
-      elif CCI != None:
-        self._ID = IR1
-        self.CALC_GM()
-      elif CCI == None:
-        self._ID = IR1
-        self.CALC_GM()
+      self._ID = IR1
+      self.CALC_GM()
       
       
       # Finally, call VNODE to update VG or VS as necessary.
@@ -538,6 +649,7 @@ class MOS:
 
   # --- --- --- Define all the properties and setters --- --- ---
   # --- Define DC Voltage Functions ---
+  
 
   @property
   def VD(self):
@@ -546,6 +658,8 @@ class MOS:
     the MOSFET. 
     '''
     D("", self._DEBUG)
+    if self._MIRRORBASE == 3:
+      return self._VG
     return self._VD
 
   @VD.setter
@@ -557,6 +671,8 @@ class MOS:
     '''
     D("", self._DEBUG)
     self._VD = v
+    if self._MIRRORBASE == 3:
+      self._VG = v
     # Define Related Values
     self.CALC_VDS()
     self.CALC_VDG()
@@ -576,6 +692,10 @@ class MOS:
     '''
     D("", self._DEBUG)
     self._VG = v
+    if self._MIRRORBASE == 3:
+      self._VD = v
+      self.CALC_VDS()
+      self.CALC_VDG()
     # Calculate any related values
     self.CALC_VGS()
     self.CALC_VDG()
@@ -632,7 +752,7 @@ class MOS:
     '''
     Returns the current through the MOSFET. 
     '''
-    D("", self._DEBUG)
+    D("Property ID called.", self._DEBUG)
     return self._ID
   @ID.setter
   def ID(self, v):
@@ -641,11 +761,31 @@ class MOS:
     Calculates Vov (Overdrive Voltage) when β is known. 
     Calculates gm (Tranconductance). 
     '''
-    D("", self._DEBUG)
+    D("ID Setter called.", self._DEBUG)
     self._ID = v
     self.CALC_Vov()
     self.CALC_GM()
-
+    self.CALC_CURRENTMIRROR()
+  @property
+  def I(self):
+    return self.ID
+  @I.setter
+  def I(self, v):
+    self.ID = v
+  
+  @property
+  def dlist(self):
+    return self._CURRENT_DEPENDANTS
+  @dlist.setter
+  def dlist(self, v):
+    self._CURRENT_DEPENDANTS = v
+  
+  @property
+  def mlist(self):
+    return self._CURRENT_MIRRORS
+  @mlist.setter
+  def mlist(self,v):
+    self._CURRENT_MIRRORS = v
 
   # --- --- --- Define all the AC Values --- --- ---
   # Define Interal AC Resistances:
@@ -737,6 +877,8 @@ class MOS:
       return self._Z_gate
     elif self._ri == 's':
       return self._Z_source
+    elif self._ri == None:
+      return None
     else:
       raise Exception(f"Invalid Input Resistance for MOSFET {self._NAME}")
   @ri.setter
@@ -762,6 +904,8 @@ class MOS:
       return self._ZG
     elif self._ro == 's':
       return self._ZS
+    elif self._ro == None:
+      return None
     else:
       raise Exception(f"Invalid Output Resistance for MOSFET {self._NAME}") 
   @ro.setter
@@ -774,6 +918,7 @@ class MOS:
     self._ro = v
     if self._ro != 'd' and self._ri != 's' and self._ri != 'g':
       raise Exception(f"Invalid Output Resistance for MOSFET {self._NAME}")
+
 
 
 # BJT Function
