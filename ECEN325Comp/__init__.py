@@ -211,7 +211,7 @@ class MOS:
           f"{a}Highest Voltage Node = {self._NHigh}\n"
           f"{a}Type = {self._TYPE} [-] Vtn = {PrintUnits(self._Vt, 'V', 'SCI')} [-] β = {PrintUnits(self._MOSBETA, '(A/V^2)', 'SCI', debug=False)}\n"
           f"DC Solutions:\n"
-          f"{a}VD = {PrintUnits(self.VD, 'V', 'SCI')} [-] VS = {PrintUnits(self.VS, 'V', 'SCI')} [-] VG = {PrintUnits(self.VG, 'V', 'SCI')}\n"
+          f"{a}VD = {PrintUnits(self._VD, 'V', 'SCI')} [-] VS = {PrintUnits(self._VS, 'V', 'SCI')} [-] VG = {PrintUnits(self._VG, 'V', 'SCI')}\n"
           f"{a}VDS = {PrintUnits(self._VDS, 'V', 'SCI')} [-] VGS = {PrintUnits(self._VGS, 'V', 'SCI')} [-] VDG = {PrintUnits(self._VDG, 'V', 'SCI')}\n"
           f"{a}Vov = {PrintUnits(self._Vov, 'V', 'SCI')} [-] ID = {PrintUnits(self._ID, 'A', 'SCI')}"
           f" --- --- --- \n"
