@@ -436,10 +436,10 @@ class MOS:
     D("CALC_VS_HIGH function called.", self._DEBUG)
     # Check for Change in VGS
     D("CALC_VS_HIGH Checking for Change in VGS", self._DEBUG)
-    if self._VGS != None and self._VS != None and self._VG == None:
+    if self._VGS is not None and self._VS is not None and self._VG is None:
       self._VG = self._VS - self._VGS
     if self._VGS != None and self._VS == None and self._VG != None:
-      self._VS = self._VG + self._VGS
+      self.VS = self._VG + self._VGS
     
     # Check for Change in VDG
     D("CALC_VS_HIGH Checking for Change in VDG", self._DEBUG)
@@ -451,7 +451,7 @@ class MOS:
     # Check for change in VDS
     D("CALC_VS_HIGH Checking for Change in VDS", self._DEBUG)
     if self._VDS != None and self._VS == None and self._VD != None:
-      self._VD = self._VS - self._VDS
+      self._VS = self._VD - self._VDS
     if self._VDS != None and self._VS != None and self._VD == None:
       self._VS = self._VD + self._VDS
   # ---
