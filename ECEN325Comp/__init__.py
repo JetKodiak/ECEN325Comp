@@ -1,12 +1,8 @@
-import numpy as np
+# --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 # Debug Message
 def D(Message, Toggle=False):
   if Toggle:
     print(Message)
-
-
-
-
 
 # Unit Manipulation
 def PrintUnits(v, v_unit, print_prefix=None, v_prefix=None, RoundingDigits=2,debug=False):
@@ -70,10 +66,7 @@ def PrintUnits(v, v_unit, print_prefix=None, v_prefix=None, RoundingDigits=2,deb
   elif not print_prefix in Prefix:
     raise Exception(f"Invalid print prefix {print_prefix}")
 
-
-
-
-
+# --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 # Operations:
 def parallel(ListOfValues):
   InverseSum = 0
@@ -81,10 +74,7 @@ def parallel(ListOfValues):
     InverseSum += (i ** -1)
   return (InverseSum ** -1)
 
-
-
-
-
+# --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 # Resistor Class:
 class R:
   # Initializer
@@ -262,9 +252,7 @@ class VD:
     self._FREQUENCY = (self._ZH.Z * self._ZL.Z) ** -1
     self._PASSTYPE = 1
 
-
-
-
+# --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 # BJT Function
 class BJT:
   def __init__(self, NAME, TYPE,  I=None, O=None, MIN_VCE=0.2, b=100, VBE=0.7):
@@ -662,10 +650,6 @@ class BJT:
   def _α(self):
     return self._a
 
-
-
-
-
 # --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 # MOSFET Simulator  - Vo (Base)
 '''
@@ -717,7 +701,7 @@ class MOS0:
     self._PVM = None
   # ----- ----- ----- ----- -----
 
-  
+
   def PrintAttributes(self, DC=True, AC=True, Region=True):
     a = '   '
     print(f" ----- ----- ----- \n"
