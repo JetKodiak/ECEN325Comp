@@ -5,16 +5,17 @@ def D(Message, Toggle=False):
     print(Message)
 
 # Unit Manipulation
-units = ["V", "A", 'Omega', "Ω", "F", '(A/V^2)']
-Prefix = ["E", "P", "T", "G", "M", "k", "h", "da", "",
-          "d", "c", "m", "u", "n", "p", "f", "a", 'SCI']
-PrefixValue = [1E18, 1E15, 1E12, 1E9, 1E6, 1E3, 1E2, 1E1, 1,
-                1E-1, 1E-2, 1E-3, 1E-6, 1E-9, 1E-12, 1E-15, 1E-18]
 
-Standard_Prefixs = ["E", "P", "T", "G", "M", "k", "", "m", "u", "n", "p", "f", "a"]
-Standard_PrefixValue = [1E18, 1E15, 1E12, 1E9, 1E6, 1E3, 1, 0.001, 1E-6, 1E-9, 1E-12, 1E-15, 1E-18]
 
 def PrintUnits(v, v_unit, print_prefix=None, v_prefix=None, RoundingDigits=2,debug=False):
+  units = ["V", "A", 'Omega', "Ω", "F", '(A/V^2)']
+  Prefix = ["E", "P", "T", "G", "M", "k", "h", "da", "",
+            "d", "c", "m", "u", "n", "p", "f", "a", 'SCI']
+  PrefixValue = [1E18, 1E15, 1E12, 1E9, 1E6, 1E3, 1E2, 1E1, 1,
+                  1E-1, 1E-2, 1E-3, 1E-6, 1E-9, 1E-12, 1E-15, 1E-18]
+
+  Standard_Prefixs = ["E", "P", "T", "G", "M", "k", "", "m", "u", "n", "p", "f", "a"]
+  Standard_PrefixValue = [1E18, 1E15, 1E12, 1E9, 1E6, 1E3, 1, 0.001, 1E-6, 1E-9, 1E-12, 1E-15, 1E-18]
   # Major Errors:
   if v == None or v_unit == None:
     return "[Undefined]"
@@ -75,9 +76,11 @@ def parallel(ListOfValues):
     InverseSum += (i ** -1)
   return (InverseSum ** -1)
 
+
+
+
+
 # MOSFET Simulator
-# @title MOS Class
-# @title MOS Class
 class MOS:
   """
   This class is meant to simulate a MOSFET transister.
@@ -436,7 +439,7 @@ class MOS:
     D("CALC_VS_HIGH function called.", self._DEBUG)
     # Check for Change in VGS
     D("CALC_VS_HIGH Checking for Change in VGS", self._DEBUG)
-    if self._VGS is not None and self._VS is not None and self._VG is None:
+    if self._VGS is not None and self._VS is None and self._VG == None:
       self._VG = self._VS - self._VGS
     if self._VGS != None and self._VS == None and self._VG != None:
       self.VS = self._VG + self._VGS
@@ -924,11 +927,11 @@ class MOS:
 
 
 
-# BJT Function
-VT=25E-3
 
+# BJT Function
 class BJT:
   def __init__(self, NAME, TYPE,  I=None, O=None, MIN_VCE=0.2, b=100, VBE=0.7):
+    VT=25E-3
     self._NAME = NAME
     self._TYPE = TYPE
     self._GOOD = False
@@ -1323,9 +1326,10 @@ class BJT:
     return self._a
 
 
+
+
+
 # Resistor Class:
-#@title Resistor Class
-# ----- ----- -----
 class R:
   # Initializer
   def __init__(self, NAME, Z=None, I=None, V=None):
@@ -1405,9 +1409,10 @@ class R:
     self.OhmsLaw()
 
 
+
+
+
 # Capacitor Class:
-#@title Capitor Class
-# ----- ----- -----
 class C:
   # Initializer
   def __init__(self, NAME, Z=None, V=None):
@@ -1449,10 +1454,9 @@ class C:
 
 
 
+
+
 # Voltage Divider Function:
-# @title Voltage Divider
-
-
 class VD:
   def __init__(self, VH=None, VL=None, ZH=None, ZL=None):
     # Define Divider Values
