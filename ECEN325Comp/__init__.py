@@ -4,9 +4,11 @@ def D(Message, Toggle=False):
   if Toggle:
     print(Message)
 
+
+
+
+
 # Unit Manipulation
-
-
 def PrintUnits(v, v_unit, print_prefix=None, v_prefix=None, RoundingDigits=2,debug=False):
   units = ["V", "A", 'Omega', "Ω", "F", '(A/V^2)']
   Prefix = ["E", "P", "T", "G", "M", "k", "h", "da", "",
@@ -67,6 +69,9 @@ def PrintUnits(v, v_unit, print_prefix=None, v_prefix=None, RoundingDigits=2,deb
     raise Exception(f"Invalid Value Prefix: {v_prefix}")
   elif not print_prefix in Prefix:
     raise Exception(f"Invalid print prefix {print_prefix}")
+
+
+
 
 
 # Operations:
