@@ -728,7 +728,7 @@ class BASEMOS:
     a = '   '
     print(f" --- ----- --- ")
     print(f"Checking region of MOSFET {self._NAME}:")
-    if self.VGS is None and self.Vt is None:
+    if self.VGS is None or self.Vt is None:
       # Values are unknown.
       if self.VGS is None and self.VT is None:
         print(f"{a}Region is unknown: VGS and Vt are unknown.")
