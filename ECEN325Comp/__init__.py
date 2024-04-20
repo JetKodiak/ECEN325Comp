@@ -466,9 +466,9 @@ class BJT:
     self._IE = v
     self._IC = v
     self._IB = v / self._b
-    self._GM = v / VT
-    self._RE = self._a * (VT / v)
-    self._RPI = self._b * (VT / v)
+    self._GM = v / self.VT
+    self._RE = self._a * (self.VT / v)
+    self._RPI = self._b * (self.VT / v)
     self.CheckAssumptions()
     self.CALC_ZEmitter()
     self.CALC_ZBase()
