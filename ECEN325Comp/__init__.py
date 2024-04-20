@@ -98,11 +98,11 @@ class R:
 
   # --- --- --- Calculate Values --- --- ---
   def OhmsLaw(self):
-    if self._Z != None and self._Z != 0 and self._I != None and self._I != 0:
+    if self._Z is not None and self._Z is not 0 and self._I is not None and self._I is not 0:
       self._V = self._Z * self._I
-    elif self._V != None and self._V != 0 and self._I != None and self._I != 0:
-      self._ = self._V / self._I
-    elif self._V != None and self._V != 0 and self._Z != None and self._Z != 0:
+    elif self._V is not None and self._V is not 0 and self._I is not None and self._I is not 0:
+      self._R = self._V / self._I
+    elif self._V is not None and self._V is not 0 and self._Z is not None and self._Z is not 0:
       self._I = self._V / self._Z
 
   # --- --- --- Define Value Functions --- --- ---
@@ -114,6 +114,7 @@ class R:
 
   @property
   def Z(self):
+    self.OhmsLaw()
     return self._Z
   @Z.setter
   def Z(self, v):
@@ -125,6 +126,7 @@ class R:
   
   @property
   def R(self):
+    self.OhmsLaw()
     return self._Z
   @R.setter
   def R(self, v):
@@ -137,6 +139,7 @@ class R:
 
   @property
   def I(self):
+    self.OhmsLaw()
     return self._I
 
   @I.setter
@@ -147,6 +150,7 @@ class R:
 
   @property
   def V(self):
+    self.OhmsLaw()
     return self._V
 
   @V.setter
@@ -1086,6 +1090,7 @@ class MOS2(MOS1):
       return ToReturn
 
 
+'''
 # --- --- --- 
 # MOS1 Test:
 kpn = 0.0932174
@@ -1095,3 +1100,4 @@ M1.VG = 5
 M1.VS = 1
 M1.CALC_VΔ()
 M1.PrintAttributes()
+'''
