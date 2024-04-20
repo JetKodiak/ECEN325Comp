@@ -656,15 +656,16 @@ class BJT:
 This version ONLY includes variables and a PrintAttributes() function to print all the values in the MOSFET. 
 '''
 # @title MOS0(NAME, TYPE, Vt, BETA=None, kp=None, W=None, L=None)
-class MOS0:
+class BASEMOS:
   '''
   This is the basic MOS simulator. it ONLY holds the various internal values.
   It does NOT calculate any of the other internal values.
   '''
-  def __init__(self, NAME, TYPE, Vt, BETA=None, kp=None, W=None, L=None, debug=False):
+  def __init__(self, NAME, TYPE, Vt, NHIGH=None, BETA=None, kp=None, W=None, L=None, debug=False):
     self._NAME = NAME
     self._TYPE = TYPE
     self._DEBUG = False
+    self._NHIGH = None
 
     # Define Internal Values:
     self._Vt = Vt
@@ -672,7 +673,6 @@ class MOS0:
     self._kp = kp
     self._W = W
     self._L = L
-    self.CALC_β()
 
     # Define the Node Voltages
     self._VS = None
@@ -966,309 +966,12 @@ class MOS0:
 '''
 This version includes a function for calculating VSG when in parallel with another voltage. 
 '''
-class MOS1:
-
-  '''
-  This is the basic MOS simulator. it ONLY holds the various internal values.
-  It does NOT calculate any of the other internal values.
-  '''
+class MOS1(BASEMOS):
   def __init__(self, NAME, TYPE, Vt, BETA=None, kp=None, W=None, L=None, debug=False):
-    self._NAME = NAME
-    self._TYPE = TYPE
-    self._DEBUG = False
-
-    # Define Internal Values:
-    self._Vt = Vt
-    self._BETA = BETA
-    self._kp = kp
-    self._W = W
-    self._L = L
+    super().__init__(NAME, TYPE, Vt, BETA, kp, W, L, debug)
     self.CALC_β()
-
-    # Define the Node Voltages
-    self._VS = None
-    self._VG = None
-    self._VD = None
-    # Define the Voltage Differences
-    self._VGS = None
-    self._VDS = None
-    self._VGD = None
-    self._Vov = None
-    # Define the drain current
-    self._ID = None
-
-    # Define the AC Resistances:
-    self._gm = None
-
-    self._ZGATE = float('inf')
-    self._ZDRAIN = float('inf')
-    self._ZSOURCE = None
-
-    self._ZG = None
-    self._ZD = None
-    self._ZS = None
-
-    # Complex Objects
-    self._PVM = None
   # ----- ----- ----- ----- -----
-  def PrintAttributes(self, DC=True, AC=True, Region=True, PRINT_PVM=True):
-    a = '   '
-    print(f" ----- ----- ----- \n"
-          f"Metrics for MOS {self._NAME}\n"
-          f"{a}Type = {self._TYPE} [-] Vt = {PrintUnits(self._Vt, 'V', 'SCI')} [-] β = {PrintUnits(self.β, '(A/V^2)', 'SCI')}")
-    if DC:
-      print(f" --- ----- --- \n"
-            f"DC Solutions:\n"
-            f"{a}VD = {PrintUnits(self._VD, 'V', 'SCI')} [-] VS = {PrintUnits(self._VS, 'V', 'SCI')} [-] VG = {PrintUnits(self._VG, 'V', 'SCI')}\n"
-            f"{a}VDS = {PrintUnits(self.VDS, 'V', 'SCI')} [-] VGS = {PrintUnits(self.VGS, 'V', 'SCI')} [-] VDG = {PrintUnits(self.VDG, 'V', 'SCI')}\n"
-            f"{a}Vov = {PrintUnits(self._Vov, 'V', 'SCI')}\n{a}ID = {PrintUnits(self.I, 'A', 'SCI')}")
-    if AC:
-      print(f" --- ----- --- \n"
-            f"AC Solutions:\n"
-            f"{a}gm = {PrintUnits(self._gm, 'Omega', 'SCI')}\n"
-            f"{a}ZS = {PrintUnits(self._ZS, 'Omega', 'SCI', debug=self._DEBUG)} [-] ZG = {PrintUnits(self._ZG, 'Omega', 'SCI', debug=self._DEBUG)} [-] ZD = {PrintUnits(self._ZD, 'Omega', 'SCI', debug=self._DEBUG)}\n"
-            f"{a}ZSource = {PrintUnits(self._ZSOURCE, 'Omega', 'SCI', debug=self._DEBUG)} [-] ZGate = {PrintUnits(self._ZGATE, 'Omega', 'SCI', debug=self._DEBUG)} [-] ZDrain = {PrintUnits(self._ZDRAIN, 'Omega', 'SCI', debug=self._DEBUG)}")
-    if PRINT_PVM and self._PVM is not None:
-      print(self._PVM)
-    if Region:
-      self.PrintRegion()
-    print(f" ----- ----- -----")
-
-  # Check Region:
-  def PrintRegion(self):
-    a = '   '
-    print(f" --- ----- --- ")
-    print(f"Checking region of MOSFET {self._NAME}:")
-    if self.VGS is None and self.Vt is None:
-      # Values are unknown.
-      if self.VGS is None and self.VT is None:
-        print(f"{a}Region is unknown: VGS and Vt are unknown.")
-      elif self.VGS is None:
-        print(f"{a}Region is unknown: VGS is unknown.")
-      elif self.Vt is None:
-        print(f"{a}Region is unknown: Vt is unknown.")
-
-    elif self.VGS > self.Vt:
-      #MOSFET NOT in Cutoff
-      if self.VDS is None or self.Vov is None:
-        if self.VDS is None and self.Vov is None:
-          print(f"{a}Region is unknown: VGS and Vov are Unknown.")
-        elif self.VDS is None:
-          print(f"{a}Region is unknown: VGS is Unknown.")
-        elif self.Vov is None:
-          print(f"{a}Region is unknown: Vov is Unknown.")
-      elif self.VDS > self.Vov:
-        print(f"{a}VDS = {PrintUnits(self.VDS, 'V', 'SCI')}, Vov = {PrintUnits(self.Vov, 'V', 'SCI')}\n"
-              f"{a}{PrintUnits(self.VDS, 'V', 'SCI')} > {PrintUnits(self.Vov, 'V', 'SCI')}\n"
-              f"{a}MOS is in the active region.")
-      elif self.VDS < self.Vov:
-        print(f"{a}VDS = {PrintUnits(self.VDS, 'V', 'SCI')}, Vov = {PrintUnits(self.Vov, 'V', 'SCI')}\n"
-              f"{a}{PrintUnits(self.VDS, 'V', 'SCI')} < {PrintUnits(self.Vov, 'V', 'SCI')}\n"
-              f"{a}MOS is in the Triode Region.")
-
-    elif self.VGS < self.Vt:
-      #MOSFET in Cutoff
-      print(f"{a}VGS = {PrintUnits(self.VGS, 'V', 'SCI')}, Vt = {PrintUnits(self.Vt, 'V', 'SCI')}")
-      print(f"{a}VGS < Vt")
-      print(f"{a}MOSFET {self._NAME} is Cutoff. ")
-
-  # ----- ----- ----- ----- -----
-  # Define Properties and Setters
-  # PROP: VT
-  @property
-  def Vt(self):
-    return self._Vt
-  @Vt.setter
-  def Vt(self, v):
-    self._Vt = v
-
-  # PROP: BETA
-  @property
-  def BETA(self):
-    return self._BETA
-  @property
-  def β(self):
-    return self._BETA
-  @property
-  def MOSBETA(self):
-    return self._BETA
-  @BETA.setter
-  def BETA(self, v):
-    self._BETA = v
-  @β.setter
-  def β(self, v):
-    self._BETA = v
-  @MOSBETA.setter
-  def MOSBETA(self, v):
-    self._BETA = v
-
-  # PROP: VS
-  @property
-  def VS(self):
-    return self._VS
-  @VS.setter
-  def VS(self, v):
-    self._VS = v
-
-  # PROP: VG
-  @property
-  def VG(self):
-    return self._VG
-  @VG.setter
-  def VG(self, v):
-    self._VG = v
-
-  # PROP: VD
-  @property
-  def VD(self):
-    return self._VD
-  @VD.setter
-  def VD(self, v):
-    self._VD = v
-
-  # PROP: VGS
-  @property
-  def VGS(self):
-    return self._VGS
-  @property
-  def VSG(self):
-    return self._VGS
-  @VGS.setter
-  def VGS(self, v):
-    self._VGS = abs(v)
-  @VSG.setter
-  def VSG(self, v):
-    self._VGS = abs(v)
-
-  # PROP: VDS
-  @property
-  def VDS(self):
-    return self._VDS
-  @property
-  def VSD(self):
-    return self._VDS
-  @VDS.setter
-  def VDS(self, v):
-    self._VDS = abs(v)
-  @VSD.setter
-  def VSD(self, v):
-    self._VDS = abs(v)
-
-  # PROP: VGD
-  @property
-  def VGD(self):
-    return self._VGD
-  @property
-  def VDG(self):
-    return self._VGD
-  @VGD.setter
-  def VGD(self, v):
-    self._VGD = abs(v)
-  @VDG.setter
-  def VDG(self, v):
-    self._VGD = abs(v)
-
-  # PROP: Vov
-  @property
-  def Vov(self):
-    return self._Vov
-  @property
-  def VOV(self):
-    return self._Vov
-  @property
-  def vov(self):
-    return self._Vov
-  @Vov.setter
-  def Vov(self, v):
-    self._Vov = v
-  @VOV.setter
-  def VOV(self, v):
-    self._Vov = v
-  @vov.setter
-  def vov(self, v):
-    self._Vov = v
-
-  # PROP: ID
-  @property
-  def ID(self):
-    return self._ID
-  @property
-  def I(self):
-    return self._ID
-  @ID.setter
-  def ID(self, v):
-    self._ID = v
-  @I.setter
-  def I(self, v):
-    self._ID = v
-
-  # PROP: gm
-  @property
-  def gm(self):
-    return self._gm
-  @property
-  def GM(self):
-    return self._GM
-  @gm.setter
-  def gm(self, v):
-    self._gm = v
-  @GM.setter
-  def GM(self, v):
-    self._gm = v
-
-  # PROP: ZGATE
-  @property
-  def ZGate(self):
-    return self._ZGATE
-  @property
-  def ZGATE(self):
-    return self._ZGATE
-
-  # PROP: ZDRAIN
-  @property
-  def ZDrain(self):
-    return self._ZDRAIN
-  @property
-  def ZDRAIN(self):
-    return self._ZDRAIN
-
-  # PROP: ZSOURCE
-  @property
-  def ZSource(self):
-    return self._ZSOURCE
-  @property
-  def ZSOURCE(self):
-    return self._ZSOURCE
-  @ZSource.setter
-  def ZSource(self, v):
-    self._ZSOURCE = v
-  @ZSOURCE.setter
-  def ZSOURCE(self, v):
-    self._ZSOURCE = v
-
-  # PROP: ZG
-  @property
-  def ZG(self):
-    return self._ZG
-  @ZG.setter
-  def ZG(self, v):
-    self._ZG = v
-
-  # PROP: ZD
-  @property
-  def ZD(self):
-    return self._ZD
-  @ZG.setter
-  def ZD(self, v):
-    self._ZD = v
-
-  # PROP: ZS
-  @property
-  def ZS(self):
-    return self._ZS
-  @ZS.setter
-  def ZS(self, v):
-    self._ZS = v
+    
 
   # ----- ----- ----- ----- -----
   # Calculate Beta from k, w, and l.
@@ -1282,15 +985,57 @@ class MOS1:
     while UPDATE:
       if self.VDS is None and self.VD is not None and self.VS is not None:
         self.VDS = self.VD - self.VS
+        UPDATE = True
       elif self.VGS is None and self.VG is not None and self.VS is not None:
         self.VGS = self.VG - self.VS
+        self.Vov = self.VGS - self.Vt
+        self.ID = self.β * (1/2) * (self.Vov ** 2)
+        UPDATE = True
       elif self.VGD is None and self.VG is not None and self.VD is not None:
         self.VGD = self.VG - self.VD
+        UPDATE = True
       else:
         UPDATE = False
+  def CALC_NV(self):
+    UPDATE=True
+    if self._NHigh == 's':
+      while (UPDATE):
+        if self.VS is None and self.VDS is not None and self.VD is not None:
+          UPDATE=True
+        elif self.VS is None and self.VGS is not None and self.VG is not None:
+          UPDATE=True
+        elif self.VG is None and self.VGD is not None and self.VD is not None:
+          UPDATE=True
+        elif self.VG is None and self.VGS is not None and self.VS is not None:
+          UPDATE=True
+        elif self.VD is None and self.VDS is not None and self.VS is not None:
+          UPDATE=True
+        elif self.VD is None and self.VDG is not None and self.VG is not None:
+          UPDATE=True
+        else:
+          UPDATE=False
+    elif self._NHIGH == 'd':
+      while (UPDATE):
+        if self.VS is None and self.VDS is not None and self.VD is not None:
+          UPDATE=True
+        elif self.VS is None and self.VGS is not None and self.VG is not None:
+          UPDATE=True
+        elif self.VG is None and self.VGD is not None and self.VD is not None:
+          UPDATE=True
+        elif self.VG is None and self.VGS is not None and self.VS is not None:
+          UPDATE=True
+        elif self.VD is None and self.VDS is not None and self.VS is not None:
+          UPDATE=True
+        elif self.VD is None and self.VDG is not None and self.VG is not None:
+          UPDATE=True
+        else:
+          UPDATE=False
+    else:
+      return
 
-
-  # ----- ----- ----- ----- -----
+# MOSFET Simulator - V2
+class MOS2(MOS1):
+    # ----- ----- ----- ----- -----
   # Get The Quadratic Summation Problems.
   def ParallelVoltageMethod(self, VP, Res, EC=0, PRINT=False):
     '''
@@ -1311,7 +1056,7 @@ class MOS1:
     are printed to console. 
     '''
     if self.VGS != None or self.ID != None:
-      raise Exception(f"Parallel Voltage Method is Unnecessary..")
+      raise Exception(f"Parallel Voltage Method is Unnecessary.")
     elif self.Vt == None:
       raise Exception(f"Parallel Voltage Method is either impossible or Unnecessary.")
     ToReturn = None
@@ -1339,4 +1084,14 @@ class MOS1:
     self.ID = Res.I = (self.β / 2) * (self.Vov ** 2)
     if ToReturn is not None:
       return ToReturn
-# MOSFET Simulator - V2
+
+
+# --- --- --- 
+# MOS1 Test:
+kpn = 0.0932174
+Vtn = 2.236
+M1 = MOS1('M0', 'NMOS', Vt=Vtn, kp=kpn, W=1, L=1)
+M1.VG = 5
+M1.VS = 1
+M1.CALC_VΔ()
+M1.PrintAttributes()
