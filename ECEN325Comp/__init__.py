@@ -903,7 +903,7 @@ class BASEMOS:
     return self._gm
   @property
   def GM(self):
-    return self._GM
+    return self._gm
   @gm.setter
   def gm(self, v):
     self._gm = v
