@@ -101,7 +101,7 @@ class R:
     if self._Z is not None and self._Z is not 0 and self._I is not None and self._I is not 0:
       self._V = self._Z * self._I
     elif self._V is not None and self._V is not 0 and self._I is not None and self._I is not 0:
-      self._R = self._V / self._I
+      self._Z = self._V / self._I
     elif self._V is not None and self._V is not 0 and self._Z is not None and self._Z is not 0:
       self._I = self._V / self._Z
 
