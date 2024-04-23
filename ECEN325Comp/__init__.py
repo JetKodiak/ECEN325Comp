@@ -5,7 +5,7 @@ def D(Message, Toggle=False):
     print(Message)
 
 # Unit Manipulation
-def PrintUnits(v, v_unit, print_prefix=None, v_prefix=None, RoundingDigits=2,debug=False):
+def PrintUnits(v, v_unit, print_prefix='SCI', v_prefix=None, RoundingDigits=4,debug=False):
   units = ["V", "A", 'Omega', "Ω", "F", '(A/V^2)']
   Prefix = ["E", "P", "T", "G", "M", "k", "h", "da", "",
             "d", "c", "m", "u", "n", "p", "f", "a", 'SCI']
