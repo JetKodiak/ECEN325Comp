@@ -983,7 +983,7 @@ class MOS1(BASEMOS):
       self.VDS = self.VD - self.VS
     if self.VGS is None and self.VG is not None and self.VS is not None:
       self.VGS = self.VG - self.VS
-    if self.VDG is None and self.VD is None and self.VG is not None:
+    if self.VDG is None and self.VD is not None and self.VG is not None:
       self.VDG = self.VD - self.VG
   # ----- ----- ----- ----- -----
   # Calculate Beta from k, w, and l.
