@@ -980,7 +980,8 @@ class MOS1(BASEMOS):
     When called, this function updates VDS, VGS, and VDG if the necessary values are available.
     '''
     if self.VDS is None and self.VD is not None and self.VS is not None:
-      self.VDS = self.VS - self.VD
+      # self.VDS = self.VS - self.VD
+      NotImplemented
     if self.VGS is None and self.VG is not None and self.VS is not None:
       self.VGS = self.VG - self.VS
       if self.Vov is None:
@@ -996,67 +997,11 @@ class MOS1(BASEMOS):
     if self.gm is None and self.Vov is not None and self.β is not None:
       self.gm = self.Vov * self.β
       self.ZSource = 1 / self.gm
-
   # ----- ----- ----- ----- -----
   # Calculate Beta from k, w, and l.
   def CALC_β(self):
     if self.β is None and self._kp is not None and self._W is not None and self._L is not None:
       self.β = self._kp * (self._W / self._L)
-
-  # Find Voltage Drop between nodes.
-  def CALC_VΔ(self):
-    UPDATE=True
-    while UPDATE:
-      if self.VDS is None and self.VD is not None and self.VS is not None:
-        self.VDS = self.VD - self.VS
-        UPDATE = True
-      elif self.VGS is None and self.VG is not None and self.VS is not None:
-        self.VGS = self.VG - self.VS
-        self.Vov = self.VGS - self.Vt
-        self.ID = self.β * (1/2) * (self.Vov ** 2)
-        UPDATE = True
-      elif self.VGD is None and self.VG is not None and self.VD is not None:
-        self.VGD = self.VG - self.VD
-        UPDATE = True
-      else:
-        UPDATE = False
-  def CALC_NV(self):
-    UPDATE=True
-    if self._NHigh == 's':
-      while (UPDATE):
-        if self.VS is None and self.VDS is not None and self.VD is not None:
-          UPDATE=True
-        elif self.VS is None and self.VGS is not None and self.VG is not None:
-          UPDATE=True
-        elif self.VG is None and self.VGD is not None and self.VD is not None:
-          UPDATE=True
-        elif self.VG is None and self.VGS is not None and self.VS is not None:
-          UPDATE=True
-        elif self.VD is None and self.VDS is not None and self.VS is not None:
-          UPDATE=True
-        elif self.VD is None and self.VDG is not None and self.VG is not None:
-          UPDATE=True
-        else:
-          UPDATE=False
-    elif self._NHIGH == 'd':
-      while (UPDATE):
-        if self.VS is None and self.VDS is not None and self.VD is not None:
-          UPDATE=True
-        elif self.VS is None and self.VGS is not None and self.VG is not None:
-          UPDATE=True
-        elif self.VG is None and self.VGD is not None and self.VD is not None:
-          UPDATE=True
-        elif self.VG is None and self.VGS is not None and self.VS is not None:
-          UPDATE=True
-        elif self.VD is None and self.VDS is not None and self.VS is not None:
-          UPDATE=True
-        elif self.VD is None and self.VDG is not None and self.VG is not None:
-          UPDATE=True
-        else:
-          UPDATE=False
-    else:
-      return
-
 # MOSFET Simulator - V2
 class MOS2(MOS1):
     # ----- ----- ----- ----- -----
