@@ -1,6 +1,6 @@
 from setuptools import setup
 setup(name='ECEN325Comp',
-      version='0.1.7.003',
+      version='0.1.7.004',
       description='Adds simulators for 325 components',
       url='https://github.com/JetKodiak/ECEN325Comp/',
       author='Hyperion',

@@ -975,7 +975,7 @@ class MOS1(BASEMOS):
     super().__init__(NAME, TYPE, Vt, BETA, kp, W, L, debug)
     self.CALC_β()
   # ----- ----- ----- ----- -----
-  def CALC_VDIFF(self):
+  def CV(self):
     '''
     When called, this function updates VDS, VGS, and VDG if the necessary values are available.
     '''
@@ -993,6 +993,10 @@ class MOS1(BASEMOS):
       self.Vov = (2 * self.ID / self.BETA) ** (1/2)
     if self.VDG is None and self.VD is not None and self.VG is not None:
       self.VDG = self.VD - self.VG
+    if self.gm is None and self.Vov is not None and self.β is not None:
+      self.gm = self.Vov * self.β
+      self.ZSource = 1 / self.gm
+
   # ----- ----- ----- ----- -----
   # Calculate Beta from k, w, and l.
   def CALC_β(self):
