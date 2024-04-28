@@ -980,7 +980,7 @@ class MOS1(BASEMOS):
     When called, this function updates VDS, VGS, and VDG if the necessary values are available.
     '''
     if self.VDS is None and self.VD is not None and self.VS is not None:
-      self.VDS = self.VD - self.VS
+      self.VDS = self.VS - self.VD
     if self.VGS is None and self.VG is not None and self.VS is not None:
       self.VGS = self.VG - self.VS
       if self.Vov is None:
