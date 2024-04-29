@@ -90,7 +90,7 @@ def AE(num1, num2, rel_tol=1e-9, abs_tol=0.0):
     Returns:
     - True if the numbers are close enough, False otherwise.
     """
-    return math.isclose(num1, num2, rel_tol=rel_tol, abs_tol=abs_tol)
+    return math.isclose(num1, num2)
 
 def CheckEqual(ListOfValues):
   '''
