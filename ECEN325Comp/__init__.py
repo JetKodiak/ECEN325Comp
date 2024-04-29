@@ -998,7 +998,16 @@ class MOS1(BASEMOS):
       self.gm = self.Vov * self.β
       self.ZSource = 1 / self.gm
   # ----- ----- ----- ----- -----
-
+  def SETDC(self, ID=None, VS=None, VG=None, VD=None):
+    if self.ID is None and ID is not None:
+      self.ID = ID
+    if self.VS is None and VS is not None:
+      self.VS = VS
+    if self.VG is None and VG is not None:
+      self.VG = VG
+    if self.VD is None and VD is not None:
+      self.VD = VD
+    self.CV()
   # ----- ----- ----- ----- -----
   # Calculate Beta from k, w, and l.
   def CALC_β(self):
