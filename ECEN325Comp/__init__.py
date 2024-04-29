@@ -75,6 +75,51 @@ def parallel(ListOfValues):
   return (InverseSum ** -1)
 
 # --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+# Check Value Equality:
+def CheckEqual(ListOfValues):
+  '''
+  When Provided a list of tuples (In the format shown below), this function prints whether the values are equal to the first object in the list. 
+  If there is a single non-equal value, then all the values shall be printed out. 
+  If all the values are equal, then the assigned name of all values shall be printed,
+  along with the equal value.
+  All internal tuples should be in the following format:
+  X = (str(name),float(value),None)
+  '''
+  # X = ('Name',Value,BOOL_Equality)
+  TFList = []
+  NameList = ""
+  CHECKSUM = True
+  CHECKVAL = ListOfValues[0][1]
+  for VAL in ListOfValues:
+    if VAL[1] != CHECKVAL:
+      VAL[2] = False
+      TFList.append(VAL)
+      CHECKSUM = False
+    else:
+      VAL[2] = True
+      TFList.append(VAL)
+  ListOfValues = TFList
+  if CHECKSUM:
+    for i in range(len(TFList)):
+      NameList += f"{TFList[0]}"
+      if i != len(TFList) - 1:
+        NameList += ', '
+    print(f"The following objects are all equivalent to [{CHECKVAL}]: {NameList}")
+  elif not CHECKSUM:
+    NameListTrue = ''
+    NameListFalse = ''
+    for i in range(len(TFList)):
+      if TFList[i][2]:
+        NameListTrue += f"{TFList[i][0]}"
+        if i != len(TFList) - 1:
+          NameListTrue += ', '
+      elif not TFList[i][2]:
+        NameListFalse += f"\t[{TFList[i][0]}, {TFList[i][1]}]\n"
+    print(f"Some or many of the values do not match. The following values are all equal to '{CHECKSUM}': {NameListTrue}"
+          f"\nThe Following values do NOT match:\n{NameListFalse}")
+        
+
+# --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 # Resistor Class:
 class R:
   # Initializer
