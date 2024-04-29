@@ -93,7 +93,7 @@ def CheckEqual(ListOfValues):
   CHECKSUM = True
   CHECKVAL = ListOfValues[0][1]
   for VAL in ListOfValues:
-    if math.isclose(VAL[1], CHECKVAL):
+    if not math.isclose(VAL[1], CHECKVAL):
       VAL[2] = False
       TFList.append(VAL)
       CHECKSUM = False
