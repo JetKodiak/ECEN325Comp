@@ -704,8 +704,6 @@ class BASEMOS:
     # Complex Objects
     self._PVM = None
   # ----- ----- ----- ----- -----
-
-
   def PrintAttributes(self, DC=True, AC=True, Region=True):
     a = '   '
     print(f" ----- ----- ----- \n"
@@ -767,6 +765,7 @@ class BASEMOS:
 
 
 
+  # ----- ----- ----- ----- -----
   # ----- ----- ----- ----- -----
   # Define Properties and Setters
   # PROP: VT
@@ -989,13 +988,17 @@ class MOS1(BASEMOS):
           self.ID = (self.BETA / 2) * (self.Vov ** 2)
     if self.VGS is None and self.Vov is not None:
       self.VGS = self.Vov + abs(self.Vt)
-    if self.VGS is None and self.ID is not None and self.BETA is not None:
+    if self.Vov is None and self.ID is not None and self.BETA is not None:
       self.Vov = (2 * self.ID / self.BETA) ** (1/2)
+      if self.VGS is None:
+        self.VGS = self.Vov + abs(self.Vt)
     if self.VDG is None and self.VD is not None and self.VG is not None:
       self.VDG = self.VD - self.VG
     if self.gm is None and self.Vov is not None and self.β is not None:
       self.gm = self.Vov * self.β
       self.ZSource = 1 / self.gm
+  # ----- ----- ----- ----- -----
+
   # ----- ----- ----- ----- -----
   # Calculate Beta from k, w, and l.
   def CALC_β(self):
