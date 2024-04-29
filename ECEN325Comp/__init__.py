@@ -1,3 +1,4 @@
+import math
 # --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 # Debug Message
 def D(Message, Toggle=False):
@@ -76,6 +77,21 @@ def parallel(ListOfValues):
 
 # --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 # Check Value Equality:
+def AE(num1, num2, rel_tol=1e-9, abs_tol=0.0):
+    """
+    Check if two floating point numbers are almost equal,
+    accounting for floating point imprecision.
+
+    Parameters:
+    - num1, num2: The numbers to compare.
+    - rel_tol: Relative tolerance; proportion of the values being compared.
+    - abs_tol: Absolute tolerance; minimum absolute tolerance level.
+
+    Returns:
+    - True if the numbers are close enough, False otherwise.
+    """
+    return math.isclose(num1, num2, rel_tol=rel_tol, abs_tol=abs_tol)
+
 def CheckEqual(ListOfValues):
   '''
   When Provided a list of tuples (In the format shown below), this function prints whether the values are equal to the first object in the list. 
@@ -91,7 +107,7 @@ def CheckEqual(ListOfValues):
   CHECKSUM = True
   CHECKVAL = ListOfValues[0][1]
   for VAL in ListOfValues:
-    if VAL[1] != CHECKVAL:
+    if AE(VAL[1], CHECKVAL):
       VAL[2] = False
       TFList.append(VAL)
       CHECKSUM = False
