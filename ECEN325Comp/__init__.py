@@ -101,7 +101,7 @@ def CheckEqual(ListOfValues):
   ListOfValues = TFList
   if CHECKSUM:
     for i in range(len(TFList)):
-      NameList += f"{TFList[0]}"
+      NameList += f"{TFList[0][0]}"
       if i != len(TFList) - 1:
         NameList += ', '
     print(f"The following objects are all equivalent to [{CHECKVAL}]: {NameList}")
