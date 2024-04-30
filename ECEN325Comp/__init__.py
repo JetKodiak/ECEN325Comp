@@ -712,7 +712,7 @@ class BASEMOS:
   This is the basic MOS simulator. it ONLY holds the various internal values.
   It does NOT calculate any of the other internal values.
   '''
-  def __init__(self, NAME, TYPE, Vt, NHIGH=None, BETA=None, kp=None, W=None, L=None, debug=False):
+  def __init__(self, NAME, TYPE, Vt, BETA=None, kp=None, W=None, L=None, debug=False):
     self._NAME = NAME
     self._TYPE = TYPE
     self._DEBUG = False
@@ -724,7 +724,7 @@ class BASEMOS:
     self._kp = kp
     self._W = W
     self._L = L
-    if self._BETA is None and self._kp is not None and self._W is not None and self._L is not None:
+    if self._BETA == None and self._kp != None and self._W != None and self._L != None:
       self._BETA = (self._W / self._L) * self._kp
 
     # Define the Node Voltages
