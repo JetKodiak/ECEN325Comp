@@ -1058,8 +1058,8 @@ class MOS1(BASEMOS):
   # ----- ----- ----- ----- -----
   # Calculate Beta from k, w, and l.
   def CALC_β(self):
-    if self.β is None and self._kp is not None and self._W is not None and self._L is not None:
-      self.β = self._kp * (self._W / self._L)
+    if self._BETA is None and self._kp is not None and self._W is not None and self._L is not None:
+      self._BETA = (self._W / self._L) * self._kp
 # MOSFET Simulator - V2
 class MOS2(MOS1):
     # ----- ----- ----- ----- -----
