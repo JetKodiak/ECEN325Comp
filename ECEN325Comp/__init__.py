@@ -1031,12 +1031,12 @@ class MOS1(BASEMOS):
       self.VGS = self.VG - self.VS
       if self.Vov is None:
         self.Vov = self.VGS - abs(self.Vt)
-        if self.ID is None and self.BETA is not None:
-          self.ID = (self.BETA / 2) * (self.Vov ** 2)
+        if self.ID is None and self.β is not None:
+          self.ID = (self.β / 2) * (self.Vov ** 2)
     if self.VGS is None and self.Vov is not None:
       self.VGS = self.Vov + abs(self.Vt)
-    if self.Vov is None and self.ID is not None and self.BETA is not None:
-      self.Vov = (2 * self.ID / self.BETA) ** (1/2)
+    if self.Vov is None and self.ID is not None and self.β is not None:
+      self.Vov = (2 * self.ID / self.β) ** (1/2)
       if self.VGS is None:
         self.VGS = self.Vov + abs(self.Vt)
     if self.VDG is None and self.VD is not None and self.VG is not None:
