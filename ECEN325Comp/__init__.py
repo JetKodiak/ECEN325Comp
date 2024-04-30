@@ -1021,7 +1021,7 @@ This version includes a function for calculating VSG when in parallel with anoth
 class MOS1(BASEMOS):
   def __init__(self, NAME, TYPE, Vt, BETA=None, kp=None, W=None, L=None, debug=False):
     super().__init__(NAME, TYPE, Vt, BETA, kp, W, L, debug)
-    self.CALC_β()
+    # self.CALC_β()
   # ----- ----- ----- ----- -----
   def CV(self):
     '''
